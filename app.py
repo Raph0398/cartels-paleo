@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 import os
+import urllib.request
 from fpdf import FPDF
 from datetime import datetime
 
@@ -10,85 +11,55 @@ st.set_page_config(page_title="Paleo Maker", layout="wide", initial_sidebar_stat
 
 DATA_FILE = "db_cartels.json"
 IMG_FOLDER = "images_archive"
+FONT_FOLDER = "fonts"
 PALEO_PINK = (252, 237, 236) 
 
-# Création des dossiers si inexistants
+# Création des dossiers
 if not os.path.exists(IMG_FOLDER):
     os.makedirs(IMG_FOLDER)
-
+if not os.path.exists(FONT_FOLDER):
+    os.makedirs(FONT_FOLDER)
 if not os.path.exists(DATA_FILE):
     with open(DATA_FILE, 'w') as f:
         json.dump([], f)
 
-# --- STYLE CSS (DESIGN PALEO) ---
-# C'est ici que l'on force le design visuel de l'interface web
+# --- TÉLÉCHARGEMENT AUTOMATIQUE DES POLICES ---
+# Cette fonction récupère les fichiers .ttf pour éviter les erreurs Unicode et respecter le design
+def download_fonts():
+    fonts = {
+        "PTSerif-Regular.ttf": "https://github.com/google/fonts/raw/main/ofl/ptserif/PTSerif-Regular.ttf",
+        "PTSerif-Bold.ttf": "https://github.com/google/fonts/raw/main/ofl/ptserif/PTSerif-Bold.ttf",
+        "PTSansNarrow-Regular.ttf": "https://github.com/google/fonts/raw/main/ofl/ptsansnarrow/PTSansNarrow-Regular.ttf",
+        "PTSansNarrow-Bold.ttf": "https://github.com/google/fonts/raw/main/ofl/ptsansnarrow/PTSansNarrow-Bold.ttf"
+    }
+    
+    for filename, url in fonts.items():
+        path = os.path.join(FONT_FOLDER, filename)
+        if not os.path.exists(path):
+            print(f"Téléchargement de {filename}...")
+            try:
+                urllib.request.urlretrieve(url, path)
+            except Exception as e:
+                st.error(f"Erreur téléchargement police {filename}: {e}")
+
+# On lance le téléchargement au démarrage
+download_fonts()
+
+# --- STYLE CSS (DESIGN WEB) ---
 st.markdown("""
 <style>
-    /* IMPORT DES POLICES GOOGLE */
     @import url('https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&family=PT+Serif:wght@400;700&display=swap');
-
-    /* 1. FOND GÉNÉRAL ET TEXTE DE BASE */
-    .stApp {
-        background-color: #FAFAFA;
-        font-family: 'PT Serif', serif;
-        color: #000000 !important;
-    }
-
-    /* 2. TITRES (PT Sans Narrow) */
-    h1, h2, h3, .stHeader {
-        font-family: 'PT Sans Narrow', sans-serif !important;
-        color: #000000 !important;
-        text-transform: uppercase;
-        font-weight: 700;
-    }
-    
-    /* 3. CHAMPS DE TEXTE (Les fameuses cases noires -> Roses) */
-    /* On cible les zones de saisie (input, textarea) */
-    .stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"] {
-        background-color: #FCEDEC !important; /* Rose pâle */
-        color: #000000 !important; /* Texte noir */
-        border: 1px solid #E0B0B0 !important;
-        font-family: 'PT Serif', serif !important;
-    }
-    
-    /* Couleur du texte quand on écrit dedans */
-    div[data-baseweb="input"] {
-        background-color: #FCEDEC !important;
-    }
-    
-    /* Labels (les titres au dessus des champs) */
-    .stTextInput label, .stTextArea label, .stSelectbox label, .stFileUploader label {
-        color: #333333 !important;
-        font-family: 'PT Sans Narrow', sans-serif !important;
-        font-size: 1.1rem !important;
-        text-transform: uppercase;
-    }
-
-    /* 4. BOUTONS */
-    div.stButton > button {
-        background-color: #000000;
-        color: white;
-        font-family: 'PT Sans Narrow', sans-serif !important;
-        border: none;
-        text-transform: uppercase;
-        padding: 0.5rem 1rem;
-    }
-    div.stButton > button:hover {
-        background-color: #D65A5A; /* Rouge Paleo au survol */
-        color: white;
-        border: none;
-    }
-
-    /* 5. LIENS ET TABS */
-    .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
-        background-color: #FCEDEC !important;
-        color: black !important;
-    }
+    .stApp { background-color: #FAFAFA; font-family: 'PT Serif', serif; color: #000000 !important; }
+    h1, h2, h3, .stHeader { font-family: 'PT Sans Narrow', sans-serif !important; color: #000000 !important; text-transform: uppercase; font-weight: 700; }
+    .stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"] { background-color: #FCEDEC !important; color: #000000 !important; border: 1px solid #E0B0B0 !important; font-family: 'PT Serif', serif !important; }
+    div[data-baseweb="input"] { background-color: #FCEDEC !important; }
+    .stTextInput label, .stTextArea label, .stSelectbox label, .stFileUploader label { color: #333333 !important; font-family: 'PT Sans Narrow', sans-serif !important; font-size: 1.1rem !important; text-transform: uppercase; }
+    div.stButton > button { background-color: #000000; color: white; font-family: 'PT Sans Narrow', sans-serif !important; border: none; text-transform: uppercase; padding: 0.5rem 1rem; }
+    div.stButton > button:hover { background-color: #D65A5A; color: white; border: none; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- FONCTIONS ---
-
+# --- FONCTIONS UTILITAIRES ---
 def load_data():
     with open(DATA_FILE, 'r') as f:
         try:
@@ -110,7 +81,17 @@ def save_image(uploaded_file):
         return file_path
     return None
 
+# --- CLASSE PDF AVEC SUPPOPRT UNICODE ET DESIGN ---
 class PDF(FPDF):
+    def __init__(self):
+        super().__init__()
+        # On charge les polices téléchargées en mode Unicode (uni=True)
+        # Cela corrige l'erreur UnicodeEncodeError
+        self.add_font('PTSerif', '', os.path.join(FONT_FOLDER, 'PTSerif-Regular.ttf'), uni=True)
+        self.add_font('PTSerif', 'B', os.path.join(FONT_FOLDER, 'PTSerif-Bold.ttf'), uni=True)
+        self.add_font('PTSansNarrow', '', os.path.join(FONT_FOLDER, 'PTSansNarrow-Regular.ttf'), uni=True)
+        self.add_font('PTSansNarrow', 'B', os.path.join(FONT_FOLDER, 'PTSansNarrow-Bold.ttf'), uni=True)
+
     def header(self):
         pass 
 
@@ -134,9 +115,9 @@ class PDF(FPDF):
             except:
                 pass
         
-        # Crédit
+        # Crédit (Gauche) - Utilise PT Sans Narrow Bold
         self.set_xy(15, 185)
-        self.set_font('Arial', 'B', 10) # Note: Arial car polices Google non dispo par défaut en PDF sans fichier .ttf
+        self.set_font('PTSansNarrow', 'B', 10) 
         self.set_text_color(80, 80, 80)
         self.cell(100, 10, f"Exhumé par {data['exhume_par']}", ln=False)
 
@@ -145,36 +126,35 @@ class PDF(FPDF):
         x_start_text = mid_point + margin_right_block
         width_text = mid_point - (margin_right_block * 2)
 
-        # Année
+        # Année (Haut Droite) - PT Sans Narrow Bold
         self.set_xy(x_start_text, 25)
-        self.set_font('Arial', 'B', 18)
+        self.set_font('PTSansNarrow', 'B', 18)
         self.set_text_color(0, 0, 0)
         self.cell(width_text, 10, str(data['annee']), ln=True, align='R')
         
-        # Titre
+        # Titre - PT Sans Narrow Bold (Gros)
         self.set_x(x_start_text)
-        self.set_font('Arial', 'B', 24)
+        self.set_font('PTSansNarrow', 'B', 24)
         self.multi_cell(width_text, 10, data['titre'].upper(), align='R')
         self.ln(10)
 
-        # Description
+        # Description - PT Serif Regular
         self.set_x(x_start_text)
-        self.set_font('Times', '', 11)
+        self.set_font('PTSerif', '', 11)
         self.set_text_color(20, 20, 20)
         self.multi_cell(width_text, 6, data['description'], align='L')
         
-        # Catégories
+        # Catégories - PT Sans Narrow
         self.set_xy(x_start_text, 180)
-        self.set_font('Arial', '', 8)
+        self.set_font('PTSansNarrow', '', 9)
         cats_str = " • ".join(data['categories'])
         self.cell(width_text, 5, f"Catégories : {cats_str}", ln=True, align='L')
         
         self.ln(2)
-        self.set_font('Arial', 'B', 9)
+        self.set_font('PTSansNarrow', 'B', 10)
         self.cell(width_text, 5, "← Pour aller plus loin", ln=True, align='L')
 
 # --- INTERFACE ---
-
 st.title("⚡ PALEO-ÉNERGÉTIQUE")
 
 tab1, tab2 = st.tabs(["✍️ ÉDITION", "📚 BIBLIOTHÈQUE"])
@@ -223,11 +203,18 @@ with tab1:
                 save_data(entry)
                 st.success(f"Cartel '{titre}' archivé !")
                 
-                pdf = PDF()
-                pdf.create_cartel(entry)
-                pdf_byte = pdf.output(dest='S').encode('latin-1', 'ignore')
-                
-                st.download_button("⬇️ TÉLÉCHARGER LE PDF", data=pdf_byte, file_name=f"Cartel_{titre}.pdf", mime='application/pdf')
+                # Génération PDF
+                try:
+                    pdf = PDF()
+                    pdf.create_cartel(entry)
+                    # Note: Avec uni=True, l'encodage 'latin-1' dans .output() n'est plus nécessaire/souhaité de la même manière
+                    # On utilise output(dest='S') qui retourne une chaine, puis on encode en latin-1 pour que streamlit puisse le lire en bytes
+                    # C'est une astuce spécifique à FPDF 1.7
+                    pdf_byte = pdf.output(dest='S').encode('latin-1')
+                    
+                    st.download_button("⬇️ TÉLÉCHARGER LE PDF", data=pdf_byte, file_name=f"Cartel_{titre}.pdf", mime='application/pdf')
+                except Exception as e:
+                    st.error(f"Erreur lors de la création du PDF : {e}")
 
 # ONGLET 2 : CONSULTATION
 with tab2:
@@ -257,8 +244,11 @@ with tab2:
                     st.markdown(f"**Exhumé par : {row['exhume_par']}**")
                     
                     if st.button(f"📄 PDF", key=row['id']):
-                        pdf = PDF()
-                        pdf.create_cartel(row.to_dict())
-                        b = pdf.output(dest='S').encode('latin-1', 'ignore')
-                        st.download_button("TÉLÉCHARGER", data=b, file_name=f"Cartel_{row['id']}.pdf", mime='application/pdf', key=f"d{row['id']}")
+                        try:
+                            pdf = PDF()
+                            pdf.create_cartel(row.to_dict())
+                            b = pdf.output(dest='S').encode('latin-1')
+                            st.download_button("TÉLÉCHARGER", data=b, file_name=f"Cartel_{row['id']}.pdf", mime='application/pdf', key=f"d{row['id']}")
+                        except Exception as e:
+                            st.error(f"Erreur PDF : {e}")
                 st.divider()
