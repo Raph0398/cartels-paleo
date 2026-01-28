@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import json
 import os
-import urllib.request
 from fpdf import FPDF
 from datetime import datetime
 
@@ -11,56 +10,24 @@ st.set_page_config(page_title="Paleo Maker", layout="wide", initial_sidebar_stat
 
 DATA_FILE = "db_cartels.json"
 IMG_FOLDER = "images_archive"
-FONT_FOLDER = "fonts"
 PALEO_PINK = (252, 237, 236) 
 
 # Création des dossiers
 if not os.path.exists(IMG_FOLDER):
     os.makedirs(IMG_FOLDER)
-if not os.path.exists(FONT_FOLDER):
-    os.makedirs(FONT_FOLDER)
 if not os.path.exists(DATA_FILE):
     with open(DATA_FILE, 'w') as f:
         json.dump([], f)
 
-# --- TÉLÉCHARGEMENT ROBUSTE DES POLICES ---
-def download_fonts():
-    # On définit une "fausse identité" pour éviter le blocage 404/403
-    opener = urllib.request.build_opener()
-    opener.addheaders = [('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3')]
-    urllib.request.install_opener(opener)
-
-    fonts = {
-        "PTSerif-Regular.ttf": "https://raw.githubusercontent.com/google/fonts/main/ofl/ptserif/PTSerif-Regular.ttf",
-        "PTSerif-Bold.ttf": "https://raw.githubusercontent.com/google/fonts/main/ofl/ptserif/PTSerif-Bold.ttf",
-        "PTSansNarrow-Regular.ttf": "https://raw.githubusercontent.com/google/fonts/main/ofl/ptsansnarrow/PTSansNarrow-Regular.ttf",
-        "PTSansNarrow-Bold.ttf": "https://raw.githubusercontent.com/google/fonts/main/ofl/ptsansnarrow/PTSansNarrow-Bold.ttf"
-    }
-    
-    for filename, url in fonts.items():
-        path = os.path.join(FONT_FOLDER, filename)
-        if not os.path.exists(path):
-            try:
-                print(f"Téléchargement de {filename}...")
-                urllib.request.urlretrieve(url, path)
-            except Exception as e:
-                st.error(f"Impossible de télécharger la police {filename}. Erreur : {e}")
-
-# Lancement du téléchargement
-download_fonts()
-
-# --- STYLE CSS (DESIGN PALEO) ---
+# --- STYLE CSS ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&family=PT+Serif:wght@400;700&display=swap');
     
-    /* Structure générale */
     .stApp { background-color: #FAFAFA; font-family: 'PT Serif', serif; color: #000000 !important; }
     
-    /* Titres */
     h1, h2, h3, .stHeader { font-family: 'PT Sans Narrow', sans-serif !important; color: #000000 !important; text-transform: uppercase; font-weight: 700; }
     
-    /* Champs de saisie (Force le Rose Pâle et retire le noir) */
     .stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"] { 
         background-color: #FCEDEC !important; 
         color: #000000 !important; 
@@ -69,11 +36,8 @@ st.markdown("""
         font-family: 'PT Serif', serif !important; 
     }
     
-    /* Fix spécifique pour le mode sombre automatique */
-    div[data-baseweb="input"] { background-color: #FCEDEC !important; }
-    div[data-baseweb="base-input"] { background-color: #FCEDEC !important; }
+    div[data-baseweb="input"], div[data-baseweb="base-input"] { background-color: #FCEDEC !important; }
     
-    /* Labels */
     .stTextInput label, .stTextArea label, .stSelectbox label, .stFileUploader label { 
         color: #333333 !important; 
         font-family: 'PT Sans Narrow', sans-serif !important; 
@@ -81,7 +45,6 @@ st.markdown("""
         text-transform: uppercase; 
     }
     
-    /* Boutons */
     div.stButton > button { 
         background-color: #000000; 
         color: white; 
@@ -120,15 +83,17 @@ def save_image(uploaded_file):
 class PDF(FPDF):
     def __init__(self):
         super().__init__()
-        # Chargement des polices téléchargées
+        # On charge les polices qui sont maintenant à la racine du dossier (à côté de app.py)
+        # S'ils sont absents, on utilise Arial par défaut pour éviter le crash
         try:
-            self.add_font('PTSerif', '', os.path.join(FONT_FOLDER, 'PTSerif-Regular.ttf'), uni=True)
-            self.add_font('PTSerif', 'B', os.path.join(FONT_FOLDER, 'PTSerif-Bold.ttf'), uni=True)
-            self.add_font('PTSansNarrow', '', os.path.join(FONT_FOLDER, 'PTSansNarrow-Regular.ttf'), uni=True)
-            self.add_font('PTSansNarrow', 'B', os.path.join(FONT_FOLDER, 'PTSansNarrow-Bold.ttf'), uni=True)
+            self.add_font('PTSerif', '', 'PTSerif-Regular.ttf', uni=True)
+            self.add_font('PTSerif', 'B', 'PTSerif-Bold.ttf', uni=True)
+            self.add_font('PTSansNarrow', '', 'PTSansNarrow-Regular.ttf', uni=True)
+            self.add_font('PTSansNarrow', 'B', 'PTSansNarrow-Bold.ttf', uni=True)
             self.fonts_loaded = True
-        except:
+        except Exception as e:
             self.fonts_loaded = False
+            print(f"Erreur chargement police locale : {e}")
 
     def header(self):
         pass 
@@ -153,7 +118,7 @@ class PDF(FPDF):
             except:
                 pass
         
-        # Gestion Polices (Fallback si échec téléchargement)
+        # Choix police (Sécurité)
         f_title = 'PTSansNarrow' if self.fonts_loaded else 'Arial'
         f_body = 'PTSerif' if self.fonts_loaded else 'Times'
 
@@ -249,7 +214,7 @@ with tab1:
                 try:
                     pdf = PDF()
                     pdf.create_cartel(entry)
-                    pdf_byte = pdf.output(dest='S').encode('latin-1') # Encodage final
+                    pdf_byte = pdf.output(dest='S').encode('latin-1') 
                     st.download_button("⬇️ TÉLÉCHARGER LE PDF", data=pdf_byte, file_name=f"Cartel_{titre}.pdf", mime='application/pdf')
                 except Exception as e:
                     st.error(f"Erreur PDF : {e}")
