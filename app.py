@@ -5,6 +5,7 @@ import os
 import zipfile
 import io
 import textwrap
+import qrcode
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 
@@ -73,9 +74,7 @@ def save_data(new_entry):
         json.dump(data, f, indent=4)
 
 def delete_data(cartel_id):
-    """Supprime un cartel de la base de données"""
     data = load_data()
-    # On garde tout sauf celui qui a l'ID à supprimer
     new_data = [d for d in data if d['id'] != cartel_id]
     with open(DATA_FILE, 'w') as f:
         json.dump(new_data, f, indent=4)
@@ -116,6 +115,7 @@ def generate_cartel_image(data):
 
     margin = int(15 * MM_TO_PX)
     
+    # 1. IMAGE
     if data['image_path'] and os.path.exists(data['image_path']):
         try:
             pil_img = Image.open(data['image_path'])
@@ -141,16 +141,20 @@ def generate_cartel_image(data):
         except Exception as e:
             print(f"Erreur image: {e}")
 
+    # 2. CREDIT
     credit_y = int(185 * MM_TO_PX)
     draw.text((margin, credit_y), f"Exhumé par {data['exhume_par']}", font=font_credit, fill=(80, 80, 80))
 
+    # 3. TEXTES
     text_x_start = mid_x + margin
     
+    # Année
     year_str = str(data['annee'])
     bbox = draw.textbbox((0, 0), year_str, font=font_year)
     text_w = bbox[2] - bbox[0]
     draw.text((A4_WIDTH_PX - margin - text_w, int(25 * MM_TO_PX)), year_str, font=font_year, fill="black")
     
+    # Titre
     title_str = data['titre'].upper()
     title_lines = textwrap.wrap(title_str, width=18) 
     current_y = int(50 * MM_TO_PX)
@@ -163,6 +167,7 @@ def generate_cartel_image(data):
     
     current_y += 60
 
+    # Description
     desc_lines = textwrap.wrap(data['description'], width=50)
     for line in desc_lines:
         draw.text((text_x_start, current_y), line, font=font_body, fill=(20, 20, 20))
@@ -170,13 +175,43 @@ def generate_cartel_image(data):
         line_h = bbox[3] - bbox[1]
         current_y += line_h + 15
 
+    # Catégories
     cats_str = " • ".join(data['categories'])
     cat_y = int(180 * MM_TO_PX)
     draw.text((text_x_start, cat_y), f"Catégories : {cats_str}", font=font_cats, fill="black")
     
+    # 4. QR CODE (Optionnel)
+    if data.get('url_qr'):
+        try:
+            # Génération du QR Code
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=1, # Bordure fine
+            )
+            qr.add_data(data['url_qr'])
+            qr.make(fit=True)
+            
+            # Création image QR avec fond rose pour se fondre
+            qr_img = qr.make_image(fill_color="black", back_color=PINK_RGB)
+            
+            # Redimensionnement (ex: 30mm de côté)
+            qr_size_px = int(30 * MM_TO_PX)
+            qr_img = qr_img.resize((qr_size_px, qr_size_px), Image.Resampling.NEAREST)
+            
+            # Positionnement : Bas Droite
+            qr_x = A4_WIDTH_PX - margin - qr_size_px
+            qr_y = A4_HEIGHT_PX - margin - qr_size_px
+            
+            img.paste(qr_img, (qr_x, qr_y))
+            
+        except Exception as e:
+            print(f"Erreur QR: {e}")
+    
     return img
 
-# --- AFFICHAGE VISUEL (PREVIEW WEB) ---
+# --- AFFICHAGE VISUEL (PREVIEW WEB - LISTE) ---
 def afficher_cartel_visuel(data):
     c1, c2 = st.columns([1, 1])
     with c1:
@@ -187,13 +222,27 @@ def afficher_cartel_visuel(data):
         st.markdown(f"<div style='color:gray; font-size:0.8em;'>Exhumé par {data['exhume_par']}</div>", unsafe_allow_html=True)
     with c2:
         cats = " • ".join(data['categories'])
+        
+        # Simulation visuelle du QR code en CSS/HTML
+        qr_html = ""
+        if data.get('url_qr'):
+            qr_html = f"""
+            <div style="margin-top:10px; text-align:right;">
+                <div style="display:inline-block; border:1px solid black; padding:5px; background-color:{PINK_HEX};">
+                    <small>QR CODE ACTIF</small><br>
+                    <small style="font-size:0.6em;">{data['url_qr'][:30]}...</small>
+                </div>
+            </div>
+            """
+            
         st.markdown(f"""
         <div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px;">
             <div style="text-align: right; font-weight: bold; font-size: 1.2em;">{data['annee']}</div>
             <div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase;">{data['titre']}</div>
-            <div style="font-family: serif; font-size: 1em; text-align: left;">{data['description'][:300]}...</div>
+            <div style="font-family: serif; font-size: 1em; text-align: left;">{data['description'][:250]}...</div>
             <br>
             <small>Catégories : {cats}</small>
+            {qr_html}
         </div>
         """, unsafe_allow_html=True)
 
@@ -202,42 +251,53 @@ st.title("⚡ PALEO-ÉNERGÉTIQUE")
 
 tab_create, tab_library = st.tabs(["NOUVEAU CARTEL", "BIBLIOTHÈQUE & EXPORT"])
 
-# === ONGLET 1 : CRÉATION ===
+# === ONGLET 1 : CRÉATION (SANS PRÉVISUALISATION) ===
 with tab_create:
-    col_input, col_preview = st.columns([1, 1.5])
-    preview_data = None
-    with col_input:
-        st.subheader("1. Saisie")
-        with st.form("new_cartel"):
-            uploaded_file = st.file_uploader("Image", type=['png', 'jpg', 'jpeg'])
+    st.subheader("Créer une nouvelle fiche")
+    with st.form("new_cartel"):
+        col_gauche, col_droite = st.columns(2)
+        
+        with col_gauche:
+            uploaded_file = st.file_uploader("Image du dispositif", type=['png', 'jpg', 'jpeg'])
+            exhume_par = st.text_input("Exhumé par (Nom Prénom)")
+        
+        with col_droite:
+            titre = st.text_input("Titre du cartel")
             annee = st.text_input("Année", value="2025")
-            titre = st.text_input("Titre")
-            description = st.text_area("Description", height=150)
-            exhume_par = st.text_input("Exhumé par")
+        
+        description = st.text_area("Description complète", height=150)
+        
+        st.markdown("**Options & Catégories**")
+        c_cat, c_qr = st.columns(2)
+        with c_cat:
             cats_base = ["Énergie", "H2O", "Mobilité", "Alimentation", "Solaire", "Eolien"]
             selected_cats = st.multiselect("Catégories", cats_base)
-            new_cat = st.text_input("Autre catégorie")
-            submit_create = st.form_submit_button("ENREGISTRER")
+            new_cat = st.text_input("Autre catégorie (Optionnel)")
+        
+        with c_qr:
+            url_qr = st.text_input("Lien pour le QR Code (Optionnel)", help="Si rempli, un QR Code apparaîtra en bas à droite.")
+        
+        submit_create = st.form_submit_button("ENREGISTRER LE CARTEL", type="primary")
 
-    if submit_create and uploaded_file and titre:
-        final_cats = selected_cats + ([new_cat] if new_cat else [])
-        img_path = save_image(uploaded_file)
-        entry = {
-            "id": datetime.now().strftime("%Y%m%d%H%M%S"),
-            "titre": titre, "annee": annee, "description": description,
-            "exhume_par": exhume_par, "categories": final_cats,
-            "image_path": img_path, "date": datetime.now().strftime("%Y-%m-%d")
-        }
-        save_data(entry)
-        st.success("✅ Cartel enregistré !")
-        preview_data = entry
-    
-    with col_preview:
-        st.subheader("2. Résultat")
-        if preview_data:
-            afficher_cartel_visuel(preview_data)
-        elif 'last_preview' in st.session_state:
-             afficher_cartel_visuel(st.session_state.last_preview)
+    if submit_create:
+        if not uploaded_file or not titre:
+            st.error("L'image et le titre sont obligatoires.")
+        else:
+            final_cats = selected_cats + ([new_cat] if new_cat else [])
+            img_path = save_image(uploaded_file)
+            entry = {
+                "id": datetime.now().strftime("%Y%m%d%H%M%S"),
+                "titre": titre, 
+                "annee": annee, 
+                "description": description,
+                "exhume_par": exhume_par, 
+                "categories": final_cats,
+                "url_qr": url_qr, # Nouveau champ
+                "image_path": img_path, 
+                "date": datetime.now().strftime("%Y-%m-%d")
+            }
+            save_data(entry)
+            st.success("✅ Cartel enregistré ! Allez dans l'onglet Bibliothèque pour le voir.")
 
 # === ONGLET 2 : BIBLIOTHÈQUE ===
 with tab_library:
@@ -274,7 +334,6 @@ with tab_library:
             if count_sel == 0:
                 st.error("Sélectionnez au moins un cartel.")
             else:
-                # On ne prend que ceux qui sont dans la sélection active
                 final_selection = [d for d in data if d['id'] in st.session_state.selection_active]
                 
                 zip_buffer = io.BytesIO()
@@ -319,7 +378,6 @@ with tab_library:
                 if st.button("🗑️", key=f"del_{row['id']}", help="Supprimer ce cartel"):
                     st.session_state[f"confirm_del_{row['id']}"] = True
                 
-                # Zone de confirmation qui apparaît si on a cliqué sur la poubelle
                 if st.session_state.get(f"confirm_del_{row['id']}"):
                     st.warning("Sûr ?")
                     if st.button("Confirmer", key=f"yes_del_{row['id']}"):
