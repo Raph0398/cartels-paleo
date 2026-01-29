@@ -39,5 +39,18 @@
         "url_qr": "https://www.poterie-jamet.com/nos-produits/ollas-oyas-irrigation/les-oyas-ollas-comment-ca-marche/#:~:text=L'irrigation%20par%20une%20poterie,irriguer%20les%20plantes%20plac%C3%A9es%20autour.",
         "image_path": "images_archive/IMG_3399.jpeg",
         "date": "2026-01-29"
+    },
+    {
+        "id": "20260129022120",
+        "titre": "LE KOTATSU",
+        "annee": "1300",
+        "description": "Le kotatsu est une table portable dissimulant un foyer de charbon de bois recouvert d\u2019une grille. Les habitants de la maison s\u2019installent autour de cette table pour se r\u00e9chauffer. Ce syst\u00e8me de chauffage pr\u00e8s du corps, plut\u00f4t que l\u2019int\u00e9gralit\u00e9 de la pi\u00e8ce, permet ainsi de r\u00e9duire la consommation de charbon. Le tout peut \u00eatre recouvert d\u2019une couverture pour minimiser la perte de chaleur. \n\nSon invention est ancienne, puisqu\u2019elle remonte \u00e0 l\u2019\u00e8re Muromachi au XIVe si\u00e8cle. \u00c0 cette \u00e9poque le kotatsu s\u2019appelle irori et d\u00e9signe un foyer fonctionnant au charbon permettant de chauffer essentiellement la cuisine. Puis avec l\u2019arriv\u00e9e de l'\u00e9lectricit\u00e9, ce foyer rustique compos\u00e9 d\u2019un creux \u00e0 m\u00eame le sol surmont\u00e9 d\u2019un crochet pour suspendre une casserole, se modernise : un radiateur \u00e9lectrique est encastr\u00e9 sous la table en bois. Par ailleurs, le kotatsu suscite la convivialit\u00e9 mais avec l\u2019arriv\u00e9e du chauffage central dans les ann\u00e9es 1990, les corps deviennent plus autonomes et distants.\n\nLe kotatsu pr\u00e9sente ainsi un bel exemple de solution low-tech, \u201cdesign\u201d et \u00e9conomique qui pourrait \u00eatre adapt\u00e9 \u00e0 des foyers occidentaux en pr\u00e9carit\u00e9 \u00e9nerg\u00e9tique. ",
+        "exhume_par": "Marie-Haude Cara\u00ebs",
+        "categories": [
+            "R\u00e9chauffer"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3400.jpeg",
+        "date": "2026-01-29"
     }
 ]
