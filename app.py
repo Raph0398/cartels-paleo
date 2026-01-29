@@ -9,7 +9,7 @@ import qrcode
 import re
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
-from github import Github, InputGitTreeElement # Nouvelle librairie pour sauvegarder
+from github import Github, InputGitTreeElement
 
 # --- CONFIGURATION INITIALE ---
 st.set_page_config(page_title="Paleo Maker", layout="wide", initial_sidebar_state="collapsed")
@@ -32,42 +32,34 @@ if not os.path.exists(DATA_FILE):
     with open(DATA_FILE, 'w') as f:
         json.dump([], f)
 
+# --- GESTION DES NOTIFICATIONS ---
+if 'flash_msg' in st.session_state and st.session_state.flash_msg:
+    st.success(st.session_state.flash_msg)
+    st.balloons()
+    st.session_state.flash_msg = None
+
 # --- FONCTION DE SAUVEGARDE GITHUB (CLOUD) ---
 def push_to_github(file_path, content_bytes=None, message="Mise à jour automatique"):
-    """Envoie un fichier vers GitHub pour le rendre permanent"""
-    # On vérifie si les secrets sont configurés (pour éviter de planter en local si pas configuré)
     if "GITHUB_TOKEN" in st.secrets and "GITHUB_REPO" in st.secrets:
         try:
             g = Github(st.secrets["GITHUB_TOKEN"])
             repo = g.get_repo(st.secrets["GITHUB_REPO"])
-            
-            # Si content_bytes est None, on lit le fichier local
             if content_bytes is None:
                 with open(file_path, 'rb') as f:
                     content_bytes = f.read()
-            
-            # On essaie de récupérer le fichier s'il existe déjà (pour update)
             try:
                 contents = repo.get_contents(file_path)
                 repo.update_file(contents.path, message, content_bytes, contents.sha)
-                # print(f"GitHub: {file_path} mis à jour.")
             except:
-                # Sinon on le crée
                 repo.create_file(file_path, message, content_bytes)
-                # print(f"GitHub: {file_path} créé.")
             return True
         except Exception as e:
-            st.error(f"Erreur de sauvegarde GitHub : {e}")
+            st.error(f"Erreur GitHub : {e}")
             return False
-    else:
-        # Si on est en local sans secrets, on ne fait rien (juste sauvegarde locale)
-        return False
+    return False
 
 # --- FONCTIONS UTILITAIRES ---
 def load_data():
-    # Au démarrage, on pourrait idéalement télécharger le JSON depuis GitHub 
-    # pour être sûr d'avoir la dernière version, mais pour l'instant on lit le local.
-    # Si l'app redémarre, Streamlit remet les fichiers du repo, donc le JSON sera à jour.
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, 'r') as f:
             try:
@@ -77,21 +69,16 @@ def load_data():
     return []
 
 def save_data(new_entry):
-    # 1. Sauvegarde Locale
     data = load_data()
     data.append(new_entry)
     with open(DATA_FILE, 'w') as f:
         json.dump(data, f, indent=4)
     
-    # 2. Sauvegarde Cloud (JSON)
-    push_to_github(DATA_FILE, message=f"Ajout cartel: {new_entry['titre']}")
-    
-    # 3. Sauvegarde Cloud (Image)
+    push_to_github(DATA_FILE, message=f"Ajout: {new_entry['titre']}")
     if new_entry.get('image_path') and os.path.exists(new_entry['image_path']):
-        push_to_github(new_entry['image_path'], message=f"Ajout image: {new_entry['titre']}")
+        push_to_github(new_entry['image_path'], message=f"Img: {new_entry['titre']}")
 
 def update_data(updated_entry):
-    # 1. Update Local
     data = load_data()
     for i, d in enumerate(data):
         if d['id'] == updated_entry['id']:
@@ -100,22 +87,16 @@ def update_data(updated_entry):
     with open(DATA_FILE, 'w') as f:
         json.dump(data, f, indent=4)
         
-    # 2. Update Cloud
-    push_to_github(DATA_FILE, message=f"Modif cartel: {updated_entry['titre']}")
-    # Si l'image a changé, on la push aussi
+    push_to_github(DATA_FILE, message=f"Modif: {updated_entry['titre']}")
     if updated_entry.get('image_path') and os.path.exists(updated_entry['image_path']):
-         push_to_github(updated_entry['image_path'], message=f"Modif image: {updated_entry['titre']}")
+         push_to_github(updated_entry['image_path'], message=f"Modif Img: {updated_entry['titre']}")
 
 def delete_data(cartel_id):
-    # 1. Delete Local
     data = load_data()
-    # On trouve le cartel pour savoir s'il y a une image à supprimer (optionnel, on garde l'image par sécurité)
     new_data = [d for d in data if d['id'] != cartel_id]
     with open(DATA_FILE, 'w') as f:
         json.dump(new_data, f, indent=4)
-    
-    # 2. Update Cloud (On met à jour le JSON pour retirer l'entrée)
-    push_to_github(DATA_FILE, message=f"Suppression cartel ID {cartel_id}")
+    push_to_github(DATA_FILE, message=f"Del ID {cartel_id}")
 
 def save_image(uploaded_file):
     if uploaded_file is not None:
@@ -138,7 +119,7 @@ def get_year_for_sort(entry):
         return int(match.group())
     return 9999
 
-# --- GENERATEUR IMAGE ---
+# --- GENERATEUR IMAGE (EXPORT JPEG) ---
 def generate_cartel_image(data):
     img = Image.new('RGB', (A4_WIDTH_PX, A4_HEIGHT_PX), color='white')
     draw = ImageDraw.Draw(img)
@@ -160,6 +141,7 @@ def generate_cartel_image(data):
 
     margin = int(15 * MM_TO_PX)
     
+    # 1. IMAGE
     if data.get('image_path') and os.path.exists(data['image_path']):
         try:
             pil_img = Image.open(data['image_path'])
@@ -170,20 +152,18 @@ def generate_cartel_image(data):
             
             img_ratio = pil_img.width / pil_img.height
             box_ratio = box_w / box_h
-            
             if img_ratio > box_ratio:
                 new_w = box_w
                 new_h = int(box_w / img_ratio)
             else:
                 new_h = box_h
                 new_w = int(box_h * img_ratio)
-                
             pil_img = pil_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
             pos_x = box_x + (box_w - new_w) // 2
             pos_y = box_y + (box_h - new_h) // 2
             img.paste(pil_img, (pos_x, pos_y))
         except Exception as e:
-            print(f"Erreur image: {e}")
+            pass
 
     credit_y = int(185 * MM_TO_PX)
     draw.text((margin, credit_y), f"Exhumé par {data['exhume_par']}", font=font_credit, fill=(80, 80, 80))
@@ -216,6 +196,7 @@ def generate_cartel_image(data):
     cat_y = int(180 * MM_TO_PX)
     draw.text((text_x_start, cat_y), f"Catégories : {cats_str}", font=font_cats, fill="black")
     
+    # 4. QR CODE (GÉNÉRÉ UNIQUEMENT SUR L'EXPORT)
     if data.get('url_qr'):
         try:
             qr = qrcode.QRCode(version=1, box_size=10, border=1)
@@ -231,7 +212,7 @@ def generate_cartel_image(data):
     
     return img
 
-# --- PREVIEW HTML ---
+# --- PREVIEW HTML (ECRAN) ---
 def afficher_cartel_visuel(data):
     c1, c2 = st.columns([1, 1])
     with c1:
@@ -242,16 +223,18 @@ def afficher_cartel_visuel(data):
         st.markdown(f"<div style='color:gray; font-size:0.8em;'>Exhumé par {data['exhume_par']}</div>", unsafe_allow_html=True)
     with c2:
         cats = " • ".join(data['categories'])
-        qr_html = ""
+        
+        # BOUTON LIEN (REMPLACE LE QR CODE VISUEL)
+        link_html = ""
         if data.get('url_qr'):
-            qr_html = f"""
-            <div style="margin-top:10px; text-align:right;">
-                <div style="display:inline-block; border:1px solid black; padding:5px; background-color:{PINK_HEX};">
-                    <small>QR CODE ACTIF</small><br>
-                    <small style="font-size:0.6em;">{data['url_qr'][:30]}...</small>
-                </div>
+            link_html = f"""
+            <div style="margin-top:15px; text-align:right;">
+                <a href="{data['url_qr']}" target="_blank" style="text-decoration:none; background-color:black; color:white; padding:5px 10px; border-radius:4px; font-family:sans-serif; font-size:0.8em;">
+                   🔗 LIEN
+                </a>
             </div>
             """
+            
         st.markdown(f"""
         <div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px;">
             <div style="text-align: right; font-weight: bold; font-size: 1.2em;">{data['annee']}</div>
@@ -259,7 +242,7 @@ def afficher_cartel_visuel(data):
             <div style="font-family: serif; font-size: 1em; text-align: left;">{data['description'][:250]}...</div>
             <br>
             <small>Catégories : {cats}</small>
-            {qr_html}
+            {link_html}
         </div>
         """, unsafe_allow_html=True)
 
@@ -276,7 +259,21 @@ full_data.sort(key=get_year_for_sort)
 # --- INTERFACE ---
 st.title("⚡ PALEO-ÉNERGÉTIQUE")
 
-tab_create, tab_library = st.tabs(["NOUVEAU CARTEL", "BIBLIOTHÈQUE & EXPORT"])
+# STYLE CSS (Boutons etc)
+st.markdown(f"""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&family=PT+Serif:wght@400;700&display=swap');
+    .stApp {{ background-color: #FAFAFA; font-family: 'PT Serif', serif; color: black; }}
+    h1, h2, h3 {{ font-family: 'PT Sans Narrow', sans-serif !important; text-transform: uppercase; }}
+    .stTextInput input, .stTextArea textarea, .stMultiSelect {{ background-color: {PINK_HEX} !important; color: black !important; border: 1px solid #E0B0B0; }}
+    div.stButton > button {{ background-color: black; color: white; font-family: 'PT Sans Narrow', sans-serif; text-transform: uppercase; border-radius: 4px; padding: 5px 15px; border: none; }}
+    div.stButton > button:hover {{ background-color: #D65A5A; color: white; }}
+    div[data-testid="column"] button {{ width: 100%; }}
+    .edit-box {{ border: 2px solid #D65A5A; padding: 15px; border-radius: 5px; background-color: white; margin-top: 10px; }}
+</style>
+""", unsafe_allow_html=True)
+
+tab_create, tab_library = st.tabs(["NOUVEAU CARTEL", "BIBLIOTHÈQUE"])
 
 # === ONGLET 1 : CRÉATION ===
 with tab_create:
@@ -304,7 +301,7 @@ with tab_create:
         if not titre:
             st.error("Le titre est obligatoire.")
         else:
-            with st.spinner('Sauvegarde vers GitHub...'): # Feedback visuel
+            with st.spinner('Sauvegarde et envoi vers GitHub...'):
                 final_cats = selected_cats + ([new_cat] if new_cat else [])
                 img_path = save_image(uploaded_file)
                 entry = {
@@ -314,13 +311,15 @@ with tab_create:
                     "url_qr": url_qr, "image_path": img_path, "date": datetime.now().strftime("%Y-%m-%d")
                 }
                 save_data(entry)
-            st.success("✅ Cartel enregistré et sécurisé sur GitHub !")
+            
+            st.session_state.flash_msg = f"✅ Cartel '{titre}' enregistré avec succès !"
             st.rerun()
 
 # === ONGLET 2 : BIBLIOTHÈQUE ===
 with tab_library:
     if 'selection_active' not in st.session_state: st.session_state.selection_active = set()
     if 'editing_id' not in st.session_state: st.session_state.editing_id = None
+    if 'confirm_bulk_del' not in st.session_state: st.session_state.confirm_bulk_del = False
 
     if not full_data:
         st.info("Aucune archive.")
@@ -332,9 +331,13 @@ with tab_library:
             filtered_data = [d for d in full_data if any(cat in d['categories'] for cat in cat_filter)]
 
         count_sel = len(st.session_state.selection_active)
-        col_inf, col_exp = st.columns([2, 1])
+        
+        # Barre d'actions globale
+        col_inf, col_exp, col_del_bulk = st.columns([2, 1, 1])
         with col_inf:
             st.caption(f"{len(filtered_data)} affichés | {count_sel} sélectionnés")
+        
+        # 1. BOUTON ZIP
         with col_exp:
             if st.button(f"GÉNÉRER LE ZIP ({count_sel})", use_container_width=True):
                 if count_sel == 0:
@@ -352,6 +355,31 @@ with tab_library:
                             zf.writestr(fname, buf.getvalue())
                             prog.progress((i+1)/len(final_selection))
                     st.download_button("⬇️ TÉLÉCHARGER ZIP", zip_buffer.getvalue(), "Cartels.zip", "application/zip")
+
+        # 2. BOUTON SUPPRESSION DE MASSE
+        with col_del_bulk:
+            if count_sel > 0:
+                if st.button("🗑️ SUPPRIMER SÉLECTION", type="primary", use_container_width=True):
+                    st.session_state.confirm_bulk_del = True
+        
+        # Confirmation Suppression de masse
+        if st.session_state.confirm_bulk_del:
+            st.warning("Attention : Vous allez supprimer définitivement les cartels sélectionnés.")
+            col_y, col_n = st.columns(2)
+            if col_y.button("CONFIRMER SUPPRESSION", type="primary"):
+                with st.spinner('Suppression en cours...'):
+                    # On copie la liste pour itérer sans problème
+                    for id_to_del in list(st.session_state.selection_active):
+                        delete_data(id_to_del)
+                    
+                    st.session_state.selection_active = set()
+                    st.session_state.confirm_bulk_del = False
+                    st.session_state.flash_msg = "🗑️ Sélection supprimée."
+                    st.rerun()
+                    
+            if col_n.button("ANNULER"):
+                st.session_state.confirm_bulk_del = False
+                st.rerun()
 
         st.divider()
         
@@ -392,7 +420,7 @@ with tab_library:
                                     up_entry.update({"titre":e_ti, "annee":e_an, "description":e_de, "exhume_par":e_ex, "categories":e_ca, "url_qr":e_qr, "image_path":n_path})
                                     update_data(up_entry)
                                 st.session_state.editing_id = None
-                                st.success("Modifié !")
+                                st.session_state.flash_msg = "✅ Cartel modifié avec succès !"
                                 st.rerun()
                         with col_cancel:
                             if st.form_submit_button("Annuler"):
@@ -419,9 +447,9 @@ with tab_library:
                     if st.button("OUI", key=f"yes_del_{row['id']}"):
                         with st.spinner('Suppression sur GitHub...'):
                             delete_data(row['id'])
+                        st.session_state.flash_msg = "🗑️ Cartel supprimé."
                         st.rerun()
                     if st.button("NON", key=f"no_del_{row['id']}"):
                         st.session_state[f"confirm_del_{row['id']}"] = False
                         st.rerun()
-
             st.divider()
