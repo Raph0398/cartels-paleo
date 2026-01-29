@@ -15,7 +15,7 @@ from github import Github, InputGitTreeElement
 st.set_page_config(page_title="Paleo Maker", layout="wide", initial_sidebar_state="collapsed")
 
 DATA_FILE = "db_cartels.json"
-DRAFTS_FILE = "db_drafts.json" # Nouvelle base pour les brouillons
+DRAFTS_FILE = "db_drafts.json"
 IMG_FOLDER = "images_archive"
 PINK_RGB = (252, 237, 236)
 PINK_HEX = "#FCEDEC"
@@ -59,11 +59,10 @@ def push_to_github(file_path, content_bytes=None, message="Mise à jour automati
                 repo.create_file(file_path, message, content_bytes)
             return True
         except Exception as e:
-            # En local sans secrets, on ignore l'erreur
             return False
     return False
 
-# --- GESTION DES DONNÉES (LIBRAIRIE & BROUILLONS) ---
+# --- GESTION DES DONNÉES ---
 def load_json(filename):
     if os.path.exists(filename):
         with open(filename, 'r') as f:
@@ -104,17 +103,12 @@ def delete_entry(entry_id, filename, msg_prefix="Del"):
     push_to_github(filename, message=f"{msg_prefix} ID {entry_id}")
 
 def publish_draft(draft_id):
-    """Déplace un brouillon vers la bibliothèque officielle"""
     drafts = load_json(DRAFTS_FILE)
     draft_to_publish = next((d for d in drafts if d['id'] == draft_id), None)
     
     if draft_to_publish:
-        # 1. On l'ajoute à la librairie officielle
-        # On change la date à aujourd'hui pour marquer la publication
         draft_to_publish['date'] = datetime.now().strftime("%Y-%m-%d")
         save_entry(draft_to_publish, DATA_FILE, msg_prefix="PUBLICATION")
-        
-        # 2. On le supprime des brouillons
         delete_entry(draft_id, DRAFTS_FILE, msg_prefix="Archivage Brouillon")
         return True
     return False
@@ -229,7 +223,7 @@ def generate_cartel_image(data):
     
     return img
 
-# --- PREVIEW HTML ---
+# --- PREVIEW HTML CORRIGÉE (SANS INDENTATION BUGGÉE) ---
 def afficher_cartel_visuel(data, is_draft=False):
     c1, c2 = st.columns([1, 1])
     with c1:
@@ -240,45 +234,42 @@ def afficher_cartel_visuel(data, is_draft=False):
         st.markdown(f"<div style='color:gray; font-size:0.8em;'>Exhumé par {data.get('exhume_par', '')}</div>", unsafe_allow_html=True)
     with c2:
         cats = " • ".join(data.get('categories', []))
-        qr_html = ""
+        
+        # Construction SANS indentation pour éviter le code block
+        link_html = ""
         if data.get('url_qr'):
-            qr_html = f"""
-            <div style="margin-top:10px; text-align:right;">
-                <a href="{data['url_qr']}" target="_blank" style="text-decoration:none; background-color:black; color:white; padding:5px 10px; border-radius:4px; font-family:sans-serif; font-size:0.8em;">🔗 LIEN</a>
-            </div>
-            """
+            link_html = f"""<div style="margin-top:15px; text-align:right;"><a href="{data['url_qr']}" target="_blank" style="text-decoration:none; background-color:black; color:white; padding:5px 10px; border-radius:4px; font-family:sans-serif; font-size:0.8em;">🔗 LIEN</a></div>"""
         
         draft_badge = ""
         if is_draft:
             draft_badge = "<div style='background:gold; color:black; padding:5px; text-align:center; font-weight:bold; margin-bottom:10px;'>⚠️ BROUILLON</div>"
 
-        st.markdown(f"""
-        <div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px;">
-            {draft_badge}
-            <div style="text-align: right; font-weight: bold; font-size: 1.2em;">{data.get('annee', '')}</div>
-            <div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase;">{data.get('titre', '')}</div>
-            <div style="font-family: serif; font-size: 1em; text-align: left;">{data.get('description', '')[:250]}...</div>
-            <br>
-            <small>Catégories : {cats}</small>
-            {qr_html}
-        </div>
-        """, unsafe_allow_html=True)
+        # Le bloc HTML principal doit être collé à gauche dans le code (flush left)
+        html_content = f"""
+<div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px;">
+    {draft_badge}
+    <div style="text-align: right; font-weight: bold; font-size: 1.2em;">{data.get('annee', '')}</div>
+    <div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase;">{data.get('titre', '')}</div>
+    <div style="font-family: serif; font-size: 1em; text-align: left;">{data.get('description', '')[:250]}...</div>
+    <br>
+    <small>Catégories : {cats}</small>
+    {link_html}
+</div>
+"""
+        st.markdown(html_content, unsafe_allow_html=True)
 
 # --- INIT DATA ---
-# Chargement des deux bases
 full_data = load_json(DATA_FILE)
 drafts_data = load_json(DRAFTS_FILE)
 
-# Calcul catégories
 categories_pool = set(["Énergie", "H2O", "Mobilité", "Alimentation", "Solaire", "Eolien"])
 for entry in full_data + drafts_data:
     for c in entry.get('categories', []):
         categories_pool.add(c)
 dynamic_cats_list = sorted(list(categories_pool))
 
-# Tri
 full_data.sort(key=get_year_for_sort)
-drafts_data.sort(key=lambda x: x.get('date', ''), reverse=True) # Brouillons par date d'ajout (récent en haut)
+drafts_data.sort(key=lambda x: x.get('date', ''), reverse=True)
 
 # --- INTERFACE ---
 st.title("⚡ PALEO-ÉNERGÉTIQUE")
@@ -293,12 +284,10 @@ st.markdown(f"""
     div.stButton > button:hover {{ background-color: #D65A5A; color: white; }}
     div[data-testid="column"] button {{ width: 100%; }}
     .edit-box {{ border: 2px solid #D65A5A; padding: 15px; border-radius: 5px; background-color: white; margin-top: 10px; }}
-    /* Onglets */
     button[data-baseweb="tab"] {{ font-family: 'PT Sans Narrow', sans-serif; font-size: 1.2em; }}
 </style>
 """, unsafe_allow_html=True)
 
-# ORDRE DES ONGLETS CHANGÉ
 tab_biblio, tab_create, tab_drafts = st.tabs(["📚 BIBLIOTHÈQUE", "➕ NOUVEAU CARTEL", "💡 IDÉES & BROUILLONS"])
 
 # === 1. BIBLIOTHÈQUE (DEFAULT) ===
@@ -379,11 +368,11 @@ with tab_biblio:
                         with e_c1:
                             e_ti = st.text_input("Titre", value=row['titre'])
                             e_an = st.text_input("Année", value=row['annee'])
-                            e_ex = st.text_input("Exhumé par", value=row['exhume_par'])
+                            e_ex = st.text_input("Exhumé par", value=row.get('exhume_par', ''))
                             e_im = st.file_uploader("Nouvelle image ?", type=['png', 'jpg'])
                         with e_c2:
-                            e_de = st.text_area("Description", value=row['description'])
-                            cur_cats = [c for c in row['categories'] if c in dynamic_cats_list]
+                            e_de = st.text_area("Description", value=row.get('description', ''))
+                            cur_cats = [c for c in row.get('categories', []) if c in dynamic_cats_list]
                             e_ca = st.multiselect("Catégories", dynamic_cats_list, default=cur_cats)
                             e_qr = st.text_input("QR Link", value=row.get('url_qr',''))
                         
@@ -465,12 +454,11 @@ with tab_create:
             st.session_state.flash_msg = f"✅ Cartel '{titre}' publié !"
             st.rerun()
 
-# === 3. IDÉES & BROUILLONS (NOUVEAU) ===
+# === 3. IDÉES & BROUILLONS ===
 with tab_drafts:
     st.subheader("💡 Boîte à idées & Brouillons")
     st.caption("Ajoutez ici des idées en vrac. Vous pourrez les modifier et les publier plus tard.")
     
-    # Formulaire d'ajout rapide (Expander pour ne pas encombrer)
     with st.expander("➕ Ajouter une idée / un brouillon", expanded=False):
         with st.form("new_draft"):
             d_titre = st.text_input("Titre (Obligatoire)")
@@ -496,7 +484,6 @@ with tab_drafts:
     
     st.divider()
     
-    # Liste des brouillons
     if not drafts_data:
         st.info("Aucun brouillon.")
     else:
@@ -504,19 +491,18 @@ with tab_drafts:
             c_d_vis, c_d_act = st.columns([2, 1])
             
             with c_d_vis:
-                # On utilise la même fonction visuelle mais avec un flag is_draft
                 afficher_cartel_visuel(d_row, is_draft=True)
                 
-                # MODE EDITION BROUILLON
                 if st.session_state.get(f"edit_draft_{d_row['id']}"):
                     st.markdown(f"<div class='edit-box'>Édition Brouillon</div>", unsafe_allow_html=True)
                     with st.form(f"form_edit_draft_{d_row['id']}"):
                         ed_ti = st.text_input("Titre", value=d_row['titre'])
-                        ed_an = st.text_input("Année", value=d_row['annee'])
-                        ed_ex = st.text_input("Exhumé par", value=d_row['exhume_par'])
+                        ed_an = st.text_input("Année", value=d_row.get('annee', ''))
+                        ed_ex = st.text_input("Exhumé par", value=d_row.get('exhume_par', ''))
                         ed_im = st.file_uploader("Image", type=['png', 'jpg'])
-                        ed_de = st.text_area("Desc", value=d_row['description'])
-                        ed_ca = st.multiselect("Catégories", dynamic_cats_list, default=[c for c in d_row['categories'] if c in dynamic_cats_list])
+                        ed_de = st.text_area("Desc", value=d_row.get('description', ''))
+                        cur_cats = [c for c in d_row.get('categories', []) if c in dynamic_cats_list]
+                        ed_ca = st.multiselect("Catégories", dynamic_cats_list, default=cur_cats)
                         
                         if st.form_submit_button("💾 Mettre à jour"):
                             n_p = d_row.get('image_path')
@@ -529,7 +515,6 @@ with tab_drafts:
 
             with c_d_act:
                 st.write("")
-                # BOUTON PUBLIER (Le plus important)
                 if st.button("🚀 PUBLIER EN BIBLIOTHÈQUE", key=f"pub_{d_row['id']}", type="primary", use_container_width=True):
                     with st.spinner("Publication officielle..."):
                         publish_draft(d_row['id'])
