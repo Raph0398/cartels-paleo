@@ -30,14 +30,12 @@ st.markdown(f"""
     .stApp {{ background-color: #FAFAFA; font-family: 'PT Serif', serif; color: black; }}
     h1, h2, h3 {{ font-family: 'PT Sans Narrow', sans-serif !important; text-transform: uppercase; }}
     
-    /* Style des Inputs pour ressembler au design */
     .stTextInput input, .stTextArea textarea {{
         background-color: {PINK_HEX} !important;
         color: black !important;
         border: 1px solid #E0B0B0;
     }}
     
-    /* Bouton principal */
     div.stButton > button {{
         background-color: black;
         color: white;
@@ -75,13 +73,10 @@ def save_image(uploaded_file):
         return file_path
     return None
 
-# --- GÉNÉRATEUR PDF (NOUVELLE VERSION FPDF2) ---
+# --- GÉNÉRATEUR PDF (FPDF2) ---
 class PDF(FPDF):
     def __init__(self):
         super().__init__(orientation='L', unit='mm', format='A4')
-        
-        # Chargement des polices (Chemins directs)
-        # On utilise try/except pour éviter le crash si une police manque
         try:
             self.add_font('PTSerif', '', 'PTSerif-Regular.ttf')
             self.add_font('PTSerif', 'B', 'PTSerif-Bold.ttf')
@@ -98,24 +93,21 @@ class PDF(FPDF):
         page_height = 210
         mid_point = page_width / 2
         
-        # 1. Fond Rose (Moitié Droite)
+        # 1. Fond Rose
         self.set_fill_color(PINK_RGB[0], PINK_RGB[1], PINK_RGB[2])
         self.rect(x=mid_point, y=0, w=mid_point, h=page_height, style='F')
         
-        # 2. Image (Moitié Gauche)
+        # 2. Image
         if data['image_path'] and os.path.exists(data['image_path']):
-            # On essaie de placer l'image proprement
-            # Max width = mid_point - marge(30)
             try:
                 self.image(data['image_path'], x=15, y=30, w=mid_point-30)
             except:
                 pass
 
-        # Choix des polices (Fallback Arial si fichiers manquants)
         f_title = 'PTSansNarrow' if self.fonts_ok else 'Arial'
         f_body = 'PTSerif' if self.fonts_ok else 'Times'
 
-        # 3. Crédit (Bas Gauche)
+        # 3. Crédit
         self.set_xy(15, 185)
         self.set_font(f_title, 'B', 10) 
         self.set_text_color(80, 80, 80)
@@ -126,7 +118,7 @@ class PDF(FPDF):
         x_text = mid_point + margin_right
         w_text = mid_point - (margin_right * 2)
 
-        # 4. Année (Haut Droite)
+        # 4. Année
         self.set_xy(x_text, 25)
         self.set_font(f_title, 'B', 18)
         self.set_text_color(0, 0, 0)
@@ -154,57 +146,6 @@ class PDF(FPDF):
         self.set_font(f_title, 'B', 10)
         self.cell(w_text, 5, "← Pour aller plus loin", align='L')
 
-# --- FONCTION DE PRÉVISUALISATION HTML ---
-def render_preview(data):
-    """Crée une fausse page web qui ressemble exactement au PDF"""
-    
-    # On récupère l'image en base64 ou chemin relatif pour l'afficher
-    # Streamlit gère bien les chemins locaux
-    
-    img_html = ""
-    if data['image_path'] and os.path.exists(data['image_path']):
-        # Astuce : on utilise st.image plus bas, ici on fait juste la structure
-        pass 
-
-    cats = " • ".join(data['categories'])
-    
-    # Structure HTML Flexbox (Gauche Blanc / Droite Rose)
-    html = f"""
-    <div style="display: flex; width: 100%; height: 600px; border: 1px solid #ddd; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-        <div style="width: 50%; background-color: white; padding: 20px; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; width: 100%;">
-                <img src="app/static/{data['image_path']}" style="max-width: 90%; max-height: 400px; object-fit: contain;" />
-            </div>
-            <div style="width: 100%; text-align: left; margin-top: 20px; color: #666; font-family: 'PT Sans Narrow'; font-weight: bold; font-size: 14px;">
-                Exhumé par {data['exhume_par']}
-            </div>
-        </div>
-        
-        <div style="width: 50%; background-color: {PINK_HEX}; padding: 40px; font-family: 'PT Serif'; color: black; position: relative;">
-            <div style="text-align: right; font-family: 'PT Sans Narrow'; font-weight: bold; font-size: 24px; margin-bottom: 10px;">
-                {data['annee']}
-            </div>
-            <div style="text-align: right; font-family: 'PT Sans Narrow'; font-weight: bold; font-size: 32px; line-height: 1.1; margin-bottom: 30px; text-transform: uppercase;">
-                {data['titre']}
-            </div>
-            <div style="font-size: 16px; line-height: 1.5; text-align: left;">
-                {data['description'].replace(chr(10), '<br>')}
-            </div>
-            
-            <div style="position: absolute; bottom: 30px; left: 40px; width: 80%;">
-                <div style="font-family: 'PT Sans Narrow'; font-size: 12px; margin-bottom: 5px;">
-                    Catégories : {cats}
-                </div>
-                <div style="font-family: 'PT Sans Narrow'; font-weight: bold; font-size: 14px;">
-                    ← Pour aller plus loin
-                </div>
-            </div>
-        </div>
-    </div>
-    """
-    return html
-
-
 # --- INTERFACE ---
 
 st.title("⚡ PALEO-ÉNERGÉTIQUE")
@@ -229,10 +170,11 @@ with tab_create:
             selected_cats = st.multiselect("Catégories", cats_base)
             new_cat = st.text_input("Autre catégorie")
             
-            submit = st.form_submit_button("PRÉVISUALISER & ENREGISTRER")
+            # Bouton de soumission du formulaire
+            submit_create = st.form_submit_button("ENREGISTRER")
             
-    if submit and uploaded_file and titre:
-        # Traitement Données
+    # HORS du formulaire, on gère la logique
+    if submit_create and uploaded_file and titre:
         final_cats = selected_cats + ([new_cat] if new_cat else [])
         img_path = save_image(uploaded_file)
         
@@ -246,18 +188,14 @@ with tab_create:
         save_data(entry)
         st.success("✅ Cartel enregistré !")
         
-        # Affichage Prévisualisation
+        # Affichage Prévisualisation (Hors formulaire)
         with col_preview:
             st.subheader("2. Résultat final")
-            # Affichage "fait main" pour simuler le PDF
-            
-            # Conteneur simulant le design
             c1, c2 = st.columns([1, 1])
-            with c1: # Partie Blanche
+            with c1:
                 st.image(img_path)
                 st.caption(f"Exhumé par {exhume_par}")
-            with c2: # Partie Rose (On triche avec st.info ou success mais couleur custom impossible ici simplement)
-                # On utilise du Markdown HTML pour forcer le design rose
+            with c2:
                 st.markdown(f"""
                 <div style="background-color: {PINK_HEX}; padding: 20px; height: 100%; border-radius: 5px; color: black;">
                     <div style="text-align: right; font-weight: bold; font-family: sans-serif; font-size: 1.2em;">{annee}</div>
@@ -279,26 +217,19 @@ with tab_library:
         df = pd.DataFrame(data)
         st.subheader(f"🗃️ Archives ({len(data)} fiches)")
         
-        # Formulaire de sélection pour export groupé
-        with st.form("export_form"):
-            # On crée une liste pour stocker les IDs sélectionnés
-            selected_ids = []
-            
-            # En-têtes colonnes
-            h1, h2, h3, h4 = st.columns([0.5, 1, 3, 1])
-            h1.write("Selec.")
-            h2.write("Image")
-            h3.write("Infos")
-            h4.write("Actions")
-            
+        # On stocke les IDs sélectionnés dans une liste
+        selected_ids = []
+        
+        # FORMULAIRE POUR LA SÉLECTION UNIQUEMENT
+        with st.form("selection_form"):
+            st.write("Cochez les cartels à inclure dans le PDF :")
             st.divider()
             
-            # Affichage de la liste avec Checkbox
             for index, row in df.iterrows():
-                c1, c2, c3, c4 = st.columns([0.5, 1, 3, 1])
+                c1, c2, c3 = st.columns([0.5, 1, 4])
                 
                 with c1:
-                    # La checkbox ajoute l'ID à la liste si cochée
+                    # Checkbox
                     if st.checkbox("", key=f"chk_{row['id']}"):
                         selected_ids.append(row['id'])
                 
@@ -307,33 +238,40 @@ with tab_library:
                         st.image(row['image_path'], use_column_width=True)
                 
                 with c3:
-                    st.markdown(f"**{row['titre'].upper()}** ({row['annee']})")
-                    st.caption(" • ".join(row['categories']))
-                    st.write(row['description'][:150] + "...")
+                    st.write(f"**{row['titre']}** ({row['annee']})")
                 
                 st.divider()
             
-            # Bouton d'action global
-            submitted = st.form_submit_button("📄 GÉNÉRER LE PDF DES ÉLÉMENTS SÉLECTIONNÉS")
+            # Ce bouton sert juste à VALIDER la sélection
+            submit_selection = st.form_submit_button("PRÉPARER LE PDF")
+
+        # --- C'EST ICI LA CORRECTION ---
+        # On est sorti du bloc "with st.form...". L'indentation est revenue à gauche.
+        
+        if submit_selection:
+            # On reconstruit la liste des IDs sélectionnés car la liste selected_ids 
+            # se vide au reload, mais les checkbox restent cochées dans le session_state
+            final_selection = []
+            for d in data:
+                if st.session_state.get(f"chk_{d['id']}"):
+                    final_selection.append(d)
             
-            if submitted:
-                if not selected_ids:
-                    st.warning("Veuillez sélectionner au moins un cartel.")
-                else:
-                    # On filtre les données
-                    items_to_print = [d for d in data if d['id'] in selected_ids]
-                    
-                    # Génération du PDF multipage
-                    pdf = PDF()
-                    for item in items_to_print:
-                        pdf.add_cartel_page(item)
-                    
-                    # Output
-                    pdf_bytes = pdf.output() # FPDF2 retourne des bytes directement
-                    
-                    st.download_button(
-                        label=f"⬇️ TÉLÉCHARGER LE CATALOGUE ({len(items_to_print)} PAGES)",
-                        data=pdf_bytes,
-                        file_name=f"Catalogue_Paleo_{datetime.now().strftime('%H%M')}.pdf",
-                        mime="application/pdf"
-                    )
+            if not final_selection:
+                st.warning("Aucun cartel sélectionné.")
+            else:
+                st.success(f"{len(final_selection)} cartels prêts à l'impression !")
+                
+                # Génération PDF
+                pdf = PDF()
+                for item in final_selection:
+                    pdf.add_cartel_page(item)
+                
+                pdf_bytes = pdf.output()
+                
+                # Le bouton de téléchargement est MAINTENANT HORS DU FORMULAIRE
+                st.download_button(
+                    label=f"⬇️ TÉLÉCHARGER LE FICHIER PDF FINAL",
+                    data=pdf_bytes,
+                    file_name=f"Catalogue_Paleo_{datetime.now().strftime('%H%M')}.pdf",
+                    mime="application/pdf"
+                )
