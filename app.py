@@ -72,6 +72,14 @@ def save_image(uploaded_file):
         return file_path
     return None
 
+# --- GESTION DE LA SÉLECTION (NOUVEAU SYSTÈME) ---
+# Cette fonction est appelée à chaque clic sur une case
+def toggle_selection(cartel_id):
+    if cartel_id in st.session_state.selection_active:
+        st.session_state.selection_active.remove(cartel_id)
+    else:
+        st.session_state.selection_active.add(cartel_id)
+
 # --- AFFICHAGE VISUEL ---
 def afficher_cartel_visuel(data):
     """Affiche le cartel tel qu'il apparaîtra, pour vérification visuelle"""
@@ -186,13 +194,11 @@ class PDF(FPDF):
         self.set_text_color(20, 20, 20)
         self.multi_cell(W_TEXT, 6, data['description'], align='L')
         
-        # 7. FOOTER (Catégories SEULEMENT)
+        # 7. FOOTER
         self.set_xy(X_TEXT, 180)
         self.set_font(self.font_header, '', 9)
         cats_str = " • ".join(data['categories'])
         self.cell(W_TEXT, 5, f"Catégories : {cats_str}", align='L', ln=True)
-        
-        # NOTE : J'ai supprimé la flèche et le texte "Pour aller plus loin" ici.
 
 # --- INTERFACE ---
 st.title("⚡ PALEO-ÉNERGÉTIQUE")
@@ -245,65 +251,70 @@ with tab_create:
 
 # === ONGLET 2 : BIBLIOTHÈQUE ===
 with tab_library:
+    # 1. Initialisation de la mémoire de sélection (Si elle n'existe pas, on la crée)
+    if 'selection_active' not in st.session_state:
+        st.session_state.selection_active = set()
+
     data = load_data()
     data = data[::-1]
     
     if not data:
         st.info("Aucune archive.")
     else:
-        st.subheader(f"🗃️ Archives ({len(data)} fiches)")
-        st.caption("Cochez les cases puis cliquez sur 'Préparer le téléchargement'.")
+        # Affiche le compteur en temps réel
+        count = len(st.session_state.selection_active)
+        st.subheader(f"🗃️ Archives ({len(data)}) - Sélection actuelle : {count} cartel(s)")
         
-        # Initialisation de la session pour le PDF
-        if 'pdf_ready' not in st.session_state:
-            st.session_state['pdf_ready'] = False
-            st.session_state['pdf_bytes'] = None
-        
-        # Conteneur pour la liste (plus de st.form ici pour éviter les bugs de sélection)
-        for index, row in enumerate(data):
+        # Bouton d'action PRINCIPAL
+        col_btn, col_info = st.columns([1, 2])
+        with col_btn:
+            if st.button(f"GÉNÉRER PDF AVEC {count} CARTELS"):
+                if count == 0:
+                    st.error("Sélectionnez au moins un cartel !")
+                else:
+                    # Récupération des données correspondant aux IDs sélectionnés
+                    final_selection = [d for d in data if d['id'] in st.session_state.selection_active]
+                    
+                    # Génération PDF
+                    pdf = PDF()
+                    for item in final_selection:
+                        pdf.add_cartel_page(item)
+                    
+                    try:
+                        pdf_bytes = bytes(pdf.output())
+                    except TypeError:
+                        pdf_bytes = pdf.output(dest='S').encode('latin-1')
+                    
+                    st.session_state['pdf_bytes'] = pdf_bytes
+                    st.session_state['pdf_ready'] = True
+                    st.success("PDF généré !")
+
+        # Bouton de téléchargement (Apparaît si le PDF est prêt)
+        if st.session_state.get('pdf_ready'):
+            st.download_button(
+                label="⬇️ TÉLÉCHARGER LE PDF FINAL",
+                data=st.session_state['pdf_bytes'],
+                file_name="Catalogue_Paleo_Complet.pdf",
+                mime="application/pdf"
+            )
+
+        st.divider()
+
+        # Liste des cartels
+        for row in data:
             cols = st.columns([0.1, 2]) 
             with cols[0]:
                 st.write("") 
                 st.write("")
-                st.write("")
-                # Checkbox simple qui garde son état
-                st.checkbox("", key=f"chk_{row['id']}")
+                # Checkbox connectée DIRECTEMENT à la fonction toggle_selection
+                is_selected = row['id'] in st.session_state.selection_active
+                st.checkbox(
+                    "", 
+                    key=f"chk_{row['id']}", 
+                    value=is_selected, 
+                    on_change=toggle_selection, 
+                    args=(row['id'],)
+                )
             with cols[1]:
                 afficher_cartel_visuel(row)
                 st.divider()
-        
-        # Bouton d'action
-        if st.button("PRÉPARER LE TÉLÉCHARGEMENT (PDF MULTI-PAGES)"):
-            # On récupère les IDs cochés
-            final_selection = []
-            for d in data:
-                if st.session_state.get(f"chk_{d['id']}"):
-                    final_selection.append(d)
-            
-            if not final_selection:
-                st.warning("Veuillez cocher au moins un cartel dans la liste ci-dessus.")
-                st.session_state['pdf_ready'] = False
-            else:
-                # Génération
-                pdf = PDF()
-                for item in final_selection:
-                    pdf.add_cartel_page(item)
-                
-                try:
-                    pdf_bytes = bytes(pdf.output())
-                except TypeError:
-                    pdf_bytes = pdf.output(dest='S').encode('latin-1')
-                
-                st.session_state['pdf_bytes'] = pdf_bytes
-                st.session_state['pdf_ready'] = True
-                st.session_state['count_selection'] = len(final_selection)
-
-        # Affichage du bouton de téléchargement si prêt
-        if st.session_state['pdf_ready'] and st.session_state['pdf_bytes']:
-            st.success(f"✅ Fichier prêt contenant {st.session_state['count_selection']} cartel(s) !")
-            st.download_button(
-                label="⬇️ TÉLÉCHARGER LE PDF FINAL",
-                data=st.session_state['pdf_bytes'],
-                file_name=f"Catalogue_Paleo_Complet.pdf",
-                mime="application/pdf"
-            )
