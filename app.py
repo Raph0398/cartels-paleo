@@ -303,7 +303,7 @@ def generate_cartel_image(data):
     
     return img
 
-# --- PREVIEW HTML CORRIGÉE (AVEC TEXTWRAP.DEDENT) ---
+# --- PREVIEW HTML CORRIGÉE (SANS COLONNES IMBRIQUÉES) ---
 def afficher_infos_cartel(data, is_draft=False):
     # Lien
     link_html = ""
@@ -318,8 +318,8 @@ def afficher_infos_cartel(data, is_draft=False):
     full_desc = data.get('description', '').replace('\n', '<br>')
     cats = " • ".join(data.get('categories', []))
 
-    # Utilisation de dedent pour supprimer les espaces parasites d'indentation
-    html_block = textwrap.dedent(f"""
+    # HTML COMPACT
+    html_block = f"""
     <div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px; font-family: serif;">
         {draft_badge}
         <div style="text-align: right; font-weight: bold; font-size: 1.2em; font-family: sans-serif;">{data.get('annee', '')}</div>
@@ -329,7 +329,7 @@ def afficher_infos_cartel(data, is_draft=False):
         <small style="font-family: sans-serif;">Catégories : {cats}</small>
         {link_html}
     </div>
-    """)
+    """
     st.markdown(html_block, unsafe_allow_html=True)
 
 # --- INIT DATA ---
@@ -361,7 +361,7 @@ st.markdown(f"""
         border: 1px solid #E0B0B0;
     }}
     
-    /* STYLE BOUTONS GÉNÉRAUX (Minimalistes) */
+    /* BOUTONS MINIMALISTES */
     div.stButton > button {{
         background-color: transparent;
         color: black;
@@ -377,57 +377,18 @@ st.markdown(f"""
         color: white;
         border-color: black;
     }}
+    
     div[data-testid="column"] button {{ width: 100%; }}
-
-    /* STYLE MENU NAVIGATION (Radio Buttons transformés en Onglets) */
-    div[role="radiogroup"] {{
-        background-color: transparent;
-        border-bottom: 2px solid #E0B0B0;
-        padding-bottom: 5px;
-        margin-bottom: 25px;
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-    }}
-    
-    /* On cache les cercles des boutons radio */
-    div[role="radiogroup"] label > div:first-child {{
-        display: none !important;
-    }}
-    
-    /* Style du texte des onglets */
-    div[role="radiogroup"] label {{
-        padding: 10px 20px !important;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }}
-    
-    /* Texte normal du menu */
-    div[role="radiogroup"] label p {{
-        font-family: 'PT Sans Narrow', sans-serif !important;
-        font-size: 1.2rem !important;
-        color: gray !important;
-        font-weight: normal;
-    }}
-
-    /* Texte sélectionné du menu */
-    div[role="radiogroup"] label[data-checked="true"] p {{
-        color: black !important;
-        font-weight: bold !important;
-        text-decoration: underline;
-        text-underline-offset: 8px;
-    }}
-
     .edit-box {{ border: 2px solid #D65A5A; padding: 15px; border-radius: 5px; background-color: white; margin-top: 10px; }}
+    div[role="radiogroup"] {{ flex-direction: row; width: 100%; justify-content: center; }}
 </style>
 """, unsafe_allow_html=True)
 
-# Noms de menu simplifiés
-menu_options = ["Bibliothèque", "Nouveau Cartel", "Idées & Brouillons"]
+menu_options = ["📚 BIBLIOTHÈQUE", "➕ NOUVEAU CARTEL", "💡 IDÉES & BROUILLONS"]
 selected_page = st.radio("", menu_options, index=st.session_state.nav_index, horizontal=True, label_visibility="collapsed")
 
 # === 1. BIBLIOTHÈQUE ===
-if selected_page == "Bibliothèque":
+if selected_page == "📚 BIBLIOTHÈQUE":
     if 'selection_active' not in st.session_state: st.session_state.selection_active = set()
     if 'editing_id' not in st.session_state: st.session_state.editing_id = None
     if 'confirm_bulk_del' not in st.session_state: st.session_state.confirm_bulk_del = False
@@ -441,24 +402,19 @@ if selected_page == "Bibliothèque":
         if cat_filter:
             filtered_data = [d for d in full_data if any(cat in d['categories'] for cat in cat_filter)]
 
-        # --- BOUTONS DE SÉLECTION DISCRETS ---
-        col_sel_all, col_desel_all, col_spacer = st.columns([1, 1, 4])
-        with col_sel_all:
-            if st.button("Tout sélectionner"):
-                for d in filtered_data:
-                    st.session_state.selection_active.add(d['id'])
-                st.rerun()
-        with col_desel_all:
-            if st.button("Tout désélectionner"):
-                for d in filtered_data:
-                    if d['id'] in st.session_state.selection_active:
-                        st.session_state.selection_active.remove(d['id'])
-                st.rerun()
+        col_sel_all, col_desel_all, col_spacer = st.columns([1, 1, 2])
+        if col_sel_all.button("✅ Tout sélectionner"):
+            for d in filtered_data:
+                st.session_state.selection_active.add(d['id'])
+            st.rerun()
+        if col_desel_all.button("❌ Tout désélectionner"):
+            for d in filtered_data:
+                if d['id'] in st.session_state.selection_active:
+                    st.session_state.selection_active.remove(d['id'])
+            st.rerun()
 
         count_sel = len(st.session_state.selection_active)
         
-        st.write("") # Spacer
-
         col_inf, col_exp, col_del_bulk = st.columns([2, 1, 1])
         with col_inf:
             st.caption(f"{len(filtered_data)} publiés | {count_sel} sélectionnés")
@@ -483,7 +439,7 @@ if selected_page == "Bibliothèque":
 
         with col_del_bulk:
             if count_sel > 0:
-                if st.button("🗑️ SUPPRIMER", use_container_width=True):
+                if st.button("🗑️ SUPPRIMER SÉLECTION", use_container_width=True):
                     st.session_state.confirm_bulk_del = True
         
         if st.session_state.confirm_bulk_del:
@@ -505,7 +461,8 @@ if selected_page == "Bibliothèque":
         st.divider()
         
         for row in filtered_data:
-            # === AFFICHAGE APLATI (SANS COLONNES IMBRIQUÉES) ===
+            # === MODIFICATION MAJEURE : APLASTISSEMENT DES COLONNES ===
+            # Structure : Checkbox | Image | Texte | Actions
             c_chk, c_img, c_txt, c_act = st.columns([0.1, 1, 1, 0.3]) 
             
             with c_chk:
@@ -526,7 +483,7 @@ if selected_page == "Bibliothèque":
                 st.markdown(f"<div style='color:gray; font-size:0.8em; text-align:center;'>Exhumé par {row.get('exhume_par', '')}</div>", unsafe_allow_html=True)
 
             with c_txt:
-                afficher_infos_cartel(row)
+                afficher_infos_cartel(row) # Appel de la nouvelle fonction sans colonnes internes
 
             with c_act:
                 st.write("")
@@ -551,6 +508,7 @@ if selected_page == "Bibliothèque":
                         st.session_state[f"confirm_del_{row['id']}"] = False
                         st.rerun()
             
+            # Formulaire d'édition (Hors des colonnes pour prendre toute la largeur)
             if st.session_state.editing_id == row['id']:
                 st.markdown(f"<div class='edit-box'>Modification : <b>{row['titre']}</b></div>", unsafe_allow_html=True)
                 with st.form(f"edit_form_{row['id']}"):
@@ -586,7 +544,7 @@ if selected_page == "Bibliothèque":
             st.divider()
 
 # === 2. CRÉATION ===
-elif selected_page == "Nouveau Cartel":
+elif selected_page == "➕ NOUVEAU CARTEL":
     st.subheader("Créer une nouvelle fiche officielle")
     with st.form("new_cartel"):
         col_gauche, col_droite = st.columns(2)
@@ -626,7 +584,7 @@ elif selected_page == "Nouveau Cartel":
             st.rerun()
 
 # === 3. IDÉES & BROUILLONS ===
-elif selected_page == "Idées & Brouillons":
+elif selected_page == "💡 IDÉES & BROUILLONS":
     if st.session_state.nav_index != 2:
         st.session_state.nav_index = 2
 
@@ -671,6 +629,8 @@ elif selected_page == "Idées & Brouillons":
         st.info("Aucun brouillon.")
     else:
         for d_row in drafts_data:
+            # === MODIFICATION MAJEURE : APLASTISSEMENT DES COLONNES ===
+            # Structure : Image | Texte | Actions
             c_img, c_txt, c_act = st.columns([1, 1, 0.5])
             
             with c_img:
@@ -707,6 +667,7 @@ elif selected_page == "Idées & Brouillons":
                         set_page(2)
                         st.rerun()
             
+            # Formulaire d'édition Brouillon (Hors des colonnes)
             if st.session_state.get(f"edit_draft_{d_row['id']}"):
                 st.markdown(f"<div class='edit-box'>Édition Brouillon</div>", unsafe_allow_html=True)
                 with st.form(f"form_edit_draft_{d_row['id']}"):
@@ -731,3 +692,4 @@ elif selected_page == "Idées & Brouillons":
                         st.rerun()
 
             st.divider()
+
