@@ -168,8 +168,10 @@ def get_year_for_sort(entry):
 
 # --- OUTILS DE TEXTE PIL ---
 def wrap_text_pixel(text, font, max_width, draw):
+    """Découpe le texte en lignes selon la largeur en pixels"""
     lines = []
     paragraphs = text.split('\n')
+    
     for paragraph in paragraphs:
         if not paragraph:
             lines.append("")
@@ -203,16 +205,15 @@ def generate_cartel_image(data):
     font_year_size = 90
     font_title_size = 120
     font_body_base_size = 55
-    font_cats_size = 40
     
     font_year = load_font("PTSansNarrow-Bold.ttf", font_year_size)
     font_title = load_font("PTSansNarrow-Bold.ttf", font_title_size)
     font_credit = load_font("PTSansNarrow-Bold.ttf", 45)
-    font_cats = load_font("PTSansNarrow-Regular.ttf", font_cats_size)
+    font_cats = load_font("PTSansNarrow-Regular.ttf", 40)
 
     margin = int(15 * MM_TO_PX)
     
-    # 1. IMAGE GAUCHE
+    # IMAGE
     if data.get('image_path') and os.path.exists(data['image_path']):
         try:
             pil_img = Image.open(data['image_path'])
@@ -220,6 +221,7 @@ def generate_cartel_image(data):
             box_y = int(30 * MM_TO_PX)
             box_w = mid_x - (2 * margin)
             box_h = int(145 * MM_TO_PX)
+            
             img_ratio = pil_img.width / pil_img.height
             box_ratio = box_w / box_h
             if img_ratio > box_ratio:
@@ -234,11 +236,11 @@ def generate_cartel_image(data):
             img.paste(pil_img, (pos_x, pos_y))
         except: pass
 
-    # 2. CREDIT
+    # Crédit
     credit_y = int(185 * MM_TO_PX)
     draw.text((margin, credit_y), f"Exhumé par {data.get('exhume_par', '')}", font=font_credit, fill=(80, 80, 80))
 
-    # 3. TEXTE DROITE
+    # DROITE
     text_x_start = mid_x + margin
     text_width_limit = A4_WIDTH_PX - text_x_start - margin
     current_y = int(15 * MM_TO_PX) 
@@ -260,13 +262,10 @@ def generate_cartel_image(data):
         current_y += font_title_size + 15
     current_y += 40
 
-    # Description
+    # Description (Auto-Fit)
     desc_text = data.get('description', '')
-    cat_y = int(180 * MM_TO_PX)
-    
-    # Calcul Espace dispo
-    text_bottom_limit = cat_y - 20
-    available_height = text_bottom_limit - current_y
+    footer_y_start = int(180 * MM_TO_PX)
+    available_height = footer_y_start - current_y - 20
     
     font_desc_size = font_body_base_size
     font_body = load_font("PTSerif-Regular.ttf", font_desc_size)
@@ -285,8 +284,9 @@ def generate_cartel_image(data):
         draw.text((text_x_start, current_y), line, font=font_body, fill=(20, 20, 20))
         current_y += font_desc_size + 15
 
-    # 4. Footer & QR
+    # Footer
     cats_str = " • ".join(data.get('categories', []))
+    cat_y = int(180 * MM_TO_PX)
     draw.text((text_x_start, cat_y), f"Catégories : {cats_str}", font=font_cats, fill="black")
     
     if data.get('url_qr'):
@@ -298,27 +298,21 @@ def generate_cartel_image(data):
             qr_size_px = int(30 * MM_TO_PX)
             qr_img = qr_img.resize((qr_size_px, qr_size_px), Image.Resampling.NEAREST)
             qr_x = A4_WIDTH_PX - margin - qr_size_px
-            qr_y = cat_y - 10 
+            qr_y = A4_HEIGHT_PX - margin - qr_size_px
             img.paste(qr_img, (qr_x, qr_y))
         except: pass
     
     return img
 
-# --- PREVIEW HTML CORRIGÉE (SANS BUG) ---
+# --- PREVIEW HTML ---
 def afficher_cartel_visuel(data, is_draft=False):
     c1, c2 = st.columns([1, 1])
     with c1:
-        # Sécurité pour l'image
-        try:
-            if data.get('image_path') and os.path.exists(data['image_path']):
-                st.image(data['image_path'], use_column_width=True)
-            else:
-                st.info("🖼️ Image introuvable")
-        except Exception:
-            st.error("Erreur d'affichage image")
-
+        if data.get('image_path') and os.path.exists(data['image_path']):
+            st.image(data['image_path'], use_column_width=True)
+        else:
+            st.info("Aucune image")
         st.markdown(f"<div style='color:gray; font-size:0.8em;'>Exhumé par {data.get('exhume_par', '')}</div>", unsafe_allow_html=True)
-    
     with c2:
         cats = " • ".join(data.get('categories', []))
         
@@ -330,12 +324,19 @@ def afficher_cartel_visuel(data, is_draft=False):
         if is_draft:
             draft_badge = "<div style='background:gold; color:black; padding:5px; text-align:center; font-weight:bold; margin-bottom:10px;'>⚠️ BROUILLON</div>"
 
-        full_desc = data.get('description', '').replace('\n', '<br>')
+        full_description = data.get('description', '').replace('\n', '<br>')
 
-        # HTML COLLÉ À GAUCHE POUR ÉVITER LE BUG D'AFFICHAGE CODE
-        html_block = f"""<div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px; font-family: serif;">{draft_badge}<div style="text-align: right; font-weight: bold; font-size: 1.2em; font-family: sans-serif;">{data.get('annee', '')}</div><div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase; font-family: sans-serif;">{data.get('titre', '')}</div><div style="text-align: left;">{full_desc}</div><br><small style="font-family: sans-serif;">Catégories : {cats}</small>{link_html}</div>"""
-        
-        st.markdown(html_block, unsafe_allow_html=True)
+        st.markdown(f"""
+<div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px;">
+{draft_badge}
+<div style="text-align: right; font-weight: bold; font-size: 1.2em;">{data.get('annee', '')}</div>
+<div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase;">{data.get('titre', '')}</div>
+<div style="font-family: serif; font-size: 1em; text-align: left;">{full_description}</div>
+<br>
+<small>Catégories : {cats}</small>
+{link_html}
+</div>
+""", unsafe_allow_html=True)
 
 # --- INIT DATA ---
 full_data = load_json(DATA_FILE)
@@ -353,37 +354,14 @@ drafts_data.sort(key=lambda x: x.get('date', ''), reverse=True)
 # --- INTERFACE ---
 st.title("⚡ PALEO-ÉNERGÉTIQUE")
 
-# --- CSS ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&family=PT+Serif:wght@400;700&display=swap');
-    
     .stApp {{ background-color: #FAFAFA; font-family: 'PT Serif', serif; color: black; }}
     h1, h2, h3 {{ font-family: 'PT Sans Narrow', sans-serif !important; text-transform: uppercase; }}
-    
-    .stTextInput input, .stTextArea textarea, .stMultiSelect {{
-        background-color: {PINK_HEX} !important;
-        color: black !important;
-        border: 1px solid #E0B0B0;
-    }}
-    
-    /* BOUTONS STYLISÉS */
-    div.stButton > button {{
-        background-color: transparent;
-        color: black;
-        border: 2px solid black;
-        border-radius: 0px;
-        font-family: 'PT Sans Narrow', sans-serif;
-        text-transform: uppercase;
-        padding: 5px 15px;
-        transition: all 0.2s;
-    }}
-    div.stButton > button:hover {{
-        background-color: black;
-        color: white;
-        border-color: black;
-    }}
-    
+    .stTextInput input, .stTextArea textarea, .stMultiSelect {{ background-color: {PINK_HEX} !important; color: black !important; border: 1px solid #E0B0B0; }}
+    div.stButton > button {{ background-color: black; color: white; font-family: 'PT Sans Narrow', sans-serif; text-transform: uppercase; border-radius: 4px; padding: 5px 15px; border: none; }}
+    div.stButton > button:hover {{ background-color: #D65A5A; color: white; }}
     div[data-testid="column"] button {{ width: 100%; }}
     .edit-box {{ border: 2px solid #D65A5A; padding: 15px; border-radius: 5px; background-color: white; margin-top: 10px; }}
     div[role="radiogroup"] {{ flex-direction: row; width: 100%; justify-content: center; }}
@@ -408,8 +386,9 @@ if selected_page == "📚 BIBLIOTHÈQUE":
         if cat_filter:
             filtered_data = [d for d in full_data if any(cat in d['categories'] for cat in cat_filter)]
 
+        # --- NOUVEAUX BOUTONS DE SÉLECTION ---
         col_sel_all, col_desel_all, col_spacer = st.columns([1, 1, 2])
-        if col_sel_all.button("✅ Tout sélectionner"):
+        if col_sel_all.button("✅ Tout sélectionner (visibles)"):
             for d in filtered_data:
                 st.session_state.selection_active.add(d['id'])
             st.rerun()
@@ -418,6 +397,7 @@ if selected_page == "📚 BIBLIOTHÈQUE":
                 if d['id'] in st.session_state.selection_active:
                     st.session_state.selection_active.remove(d['id'])
             st.rerun()
+        # -------------------------------------
 
         count_sel = len(st.session_state.selection_active)
         
@@ -445,13 +425,13 @@ if selected_page == "📚 BIBLIOTHÈQUE":
 
         with col_del_bulk:
             if count_sel > 0:
-                if st.button("🗑️ SUPPRIMER SÉLECTION", use_container_width=True):
+                if st.button("🗑️ SUPPRIMER SÉLECTION", type="primary", use_container_width=True):
                     st.session_state.confirm_bulk_del = True
         
         if st.session_state.confirm_bulk_del:
             st.warning("Attention : Suppression définitive.")
             col_y, col_n = st.columns(2)
-            if col_y.button("CONFIRMER SUPPRESSION", key="conf_bulk"):
+            if col_y.button("CONFIRMER", type="primary", key="conf_bulk"):
                 with st.spinner('Suppression...'):
                     for id_to_del in list(st.session_state.selection_active):
                         delete_entry(id_to_del, DATA_FILE)
@@ -486,14 +466,15 @@ if selected_page == "📚 BIBLIOTHÈQUE":
                             e_ex = st.text_input("Exhumé par", value=row['exhume_par'])
                             e_im = st.file_uploader("Nouvelle image ?", type=['png', 'jpg'])
                         with e_c2:
-                            e_de = st.text_area("Description (Max 1500)", value=row['description'], max_chars=1500)
+                            # MODIFICATION : Limite caractères + Compteur
+                            e_de = st.text_area("Description (Max 1500 caractères)", value=row['description'], max_chars=1500)
                             cur_cats = [c for c in row['categories'] if c in dynamic_cats_list]
                             e_ca = st.multiselect("Catégories", dynamic_cats_list, default=cur_cats)
                             e_qr = st.text_input("QR Link", value=row.get('url_qr',''))
                         
                         col_save, col_cancel = st.columns([1, 1])
                         with col_save:
-                            if st.form_submit_button("💾 SAUVEGARDER"):
+                            if st.form_submit_button("💾 Sauvegarder"):
                                 with st.spinner('Mise à jour...'):
                                     n_path = row.get('image_path')
                                     if e_im: n_path = save_image(e_im)
@@ -505,7 +486,7 @@ if selected_page == "📚 BIBLIOTHÈQUE":
                                     set_page(0) 
                                     st.rerun()
                         with col_cancel:
-                            if st.form_submit_button("ANNULER"):
+                            if st.form_submit_button("Annuler"):
                                 st.session_state.editing_id = None
                                 st.rerun()
 
@@ -546,6 +527,7 @@ elif selected_page == "➕ NOUVEAU CARTEL":
             titre = st.text_input("Titre (Obligatoire)")
             annee = st.text_input("Année", value="2025")
         
+        # MODIFICATION : Limite caractères + Compteur
         description = st.text_area("Description (Max 1500 caractères)", height=150, max_chars=1500)
         
         c_cat, c_qr = st.columns(2)
@@ -554,7 +536,7 @@ elif selected_page == "➕ NOUVEAU CARTEL":
             new_cat = st.text_input("Autre catégorie (Ajout)")
         with c_qr:
             url_qr = st.text_input("Lien QR Code (Optionnel)")
-        submit_create = st.form_submit_button("ENREGISTRER LE CARTEL")
+        submit_create = st.form_submit_button("ENREGISTRER LE CARTEL", type="primary")
 
     if submit_create:
         if not titre:
@@ -584,6 +566,7 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
     with st.expander("➕ Ajouter une idée / un brouillon", expanded=False):
         with st.form("new_draft"):
             d_titre = st.text_input("Titre (Obligatoire)")
+            # MODIFICATION : Limite caractères + Compteur
             d_desc = st.text_area("Notes / Description (Max 1500 caractères)", max_chars=1500)
             
             c_img_d, c_opt_d = st.columns([1, 2])
@@ -594,7 +577,7 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
                 d_new_cat = st.text_input("Autre catégorie (Ajout)", key="draft_new_cat")
                 d_qr = st.text_input("Lien QR Code (Optionnel)", key="draft_qr")
             
-            d_submit = st.form_submit_button("SAUVEGARDER BROUILLON")
+            d_submit = st.form_submit_button("Sauvegarder le brouillon")
             
             if d_submit:
                 if not d_titre:
@@ -630,13 +613,14 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
                         ed_an = st.text_input("Année", value=d_row.get('annee', ''))
                         ed_ex = st.text_input("Exhumé par", value=d_row.get('exhume_par', ''))
                         ed_im = st.file_uploader("Image", type=['png', 'jpg'])
-                        ed_de = st.text_area("Desc (Max 1500)", value=d_row.get('description', ''), max_chars=1500)
+                        # MODIFICATION : Limite caractères + Compteur
+                        ed_de = st.text_area("Desc (Max 1500 caractères)", value=d_row.get('description', ''), max_chars=1500)
                         
                         cur_cats = [c for c in d_row.get('categories', []) if c in dynamic_cats_list]
                         ed_ca = st.multiselect("Catégories", dynamic_cats_list, default=cur_cats)
                         ed_qr = st.text_input("QR Link", value=d_row.get('url_qr', ''))
                         
-                        if st.form_submit_button("💾 METTRE À JOUR"):
+                        if st.form_submit_button("💾 Mettre à jour"):
                             n_p = d_row.get('image_path')
                             if ed_im: n_p = save_image(ed_im)
                             up_dr = d_row.copy()
@@ -648,7 +632,7 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
 
             with c_d_act:
                 st.write("")
-                if st.button("🚀 PUBLIER EN BIBLIOTHÈQUE", key=f"pub_{d_row['id']}", use_container_width=True):
+                if st.button("🚀 PUBLIER EN BIBLIOTHÈQUE", key=f"pub_{d_row['id']}", type="primary", use_container_width=True):
                     with st.spinner("Publication officielle..."):
                         publish_draft(d_row['id'])
                     st.session_state.flash_msg = f"🎉 '{d_row['titre']}' est maintenant publié !"
