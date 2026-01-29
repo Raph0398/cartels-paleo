@@ -15,6 +15,7 @@ from github import Github, InputGitTreeElement
 st.set_page_config(page_title="Paleo Maker", layout="wide", initial_sidebar_state="collapsed")
 
 DATA_FILE = "db_cartels.json"
+DRAFTS_FILE = "db_drafts.json" # Nouvelle base pour les brouillons
 IMG_FOLDER = "images_archive"
 PINK_RGB = (252, 237, 236)
 PINK_HEX = "#FCEDEC"
@@ -31,14 +32,18 @@ if not os.path.exists(IMG_FOLDER):
 if not os.path.exists(DATA_FILE):
     with open(DATA_FILE, 'w') as f:
         json.dump([], f)
+if not os.path.exists(DRAFTS_FILE):
+    with open(DRAFTS_FILE, 'w') as f:
+        json.dump([], f)
 
 # --- GESTION DES NOTIFICATIONS ---
 if 'flash_msg' in st.session_state and st.session_state.flash_msg:
     st.success(st.session_state.flash_msg)
-    st.balloons()
+    if "succès" in st.session_state.flash_msg or "Publié" in st.session_state.flash_msg:
+        st.balloons()
     st.session_state.flash_msg = None
 
-# --- FONCTION DE SAUVEGARDE GITHUB (CLOUD) ---
+# --- SAUVEGARDE GITHUB ---
 def push_to_github(file_path, content_bytes=None, message="Mise à jour automatique"):
     if "GITHUB_TOKEN" in st.secrets and "GITHUB_REPO" in st.secrets:
         try:
@@ -54,49 +59,65 @@ def push_to_github(file_path, content_bytes=None, message="Mise à jour automati
                 repo.create_file(file_path, message, content_bytes)
             return True
         except Exception as e:
-            st.error(f"Erreur GitHub : {e}")
+            # En local sans secrets, on ignore l'erreur
             return False
     return False
 
-# --- FONCTIONS UTILITAIRES ---
-def load_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, 'r') as f:
+# --- GESTION DES DONNÉES (LIBRAIRIE & BROUILLONS) ---
+def load_json(filename):
+    if os.path.exists(filename):
+        with open(filename, 'r') as f:
             try:
                 return json.load(f)
             except json.JSONDecodeError:
                 return []
     return []
 
-def save_data(new_entry):
-    data = load_data()
-    data.append(new_entry)
-    with open(DATA_FILE, 'w') as f:
+def save_entry(entry, filename, msg_prefix="Ajout"):
+    data = load_json(filename)
+    data.append(entry)
+    with open(filename, 'w') as f:
         json.dump(data, f, indent=4)
+    push_to_github(filename, message=f"{msg_prefix}: {entry.get('titre', 'Sans titre')}")
     
-    push_to_github(DATA_FILE, message=f"Ajout: {new_entry['titre']}")
-    if new_entry.get('image_path') and os.path.exists(new_entry['image_path']):
-        push_to_github(new_entry['image_path'], message=f"Img: {new_entry['titre']}")
+    if entry.get('image_path') and os.path.exists(entry['image_path']):
+        push_to_github(entry['image_path'], message=f"Img: {entry.get('titre')}")
 
-def update_data(updated_entry):
-    data = load_data()
+def update_entry(updated_entry, filename, msg_prefix="Modif"):
+    data = load_json(filename)
     for i, d in enumerate(data):
         if d['id'] == updated_entry['id']:
             data[i] = updated_entry
             break
-    with open(DATA_FILE, 'w') as f:
+    with open(filename, 'w') as f:
         json.dump(data, f, indent=4)
-        
-    push_to_github(DATA_FILE, message=f"Modif: {updated_entry['titre']}")
+    push_to_github(filename, message=f"{msg_prefix}: {updated_entry.get('titre')}")
+    
     if updated_entry.get('image_path') and os.path.exists(updated_entry['image_path']):
-         push_to_github(updated_entry['image_path'], message=f"Modif Img: {updated_entry['titre']}")
+         push_to_github(updated_entry['image_path'], message=f"Img Modif: {updated_entry.get('titre')}")
 
-def delete_data(cartel_id):
-    data = load_data()
-    new_data = [d for d in data if d['id'] != cartel_id]
-    with open(DATA_FILE, 'w') as f:
+def delete_entry(entry_id, filename, msg_prefix="Del"):
+    data = load_json(filename)
+    new_data = [d for d in data if d['id'] != entry_id]
+    with open(filename, 'w') as f:
         json.dump(new_data, f, indent=4)
-    push_to_github(DATA_FILE, message=f"Del ID {cartel_id}")
+    push_to_github(filename, message=f"{msg_prefix} ID {entry_id}")
+
+def publish_draft(draft_id):
+    """Déplace un brouillon vers la bibliothèque officielle"""
+    drafts = load_json(DRAFTS_FILE)
+    draft_to_publish = next((d for d in drafts if d['id'] == draft_id), None)
+    
+    if draft_to_publish:
+        # 1. On l'ajoute à la librairie officielle
+        # On change la date à aujourd'hui pour marquer la publication
+        draft_to_publish['date'] = datetime.now().strftime("%Y-%m-%d")
+        save_entry(draft_to_publish, DATA_FILE, msg_prefix="PUBLICATION")
+        
+        # 2. On le supprime des brouillons
+        delete_entry(draft_id, DRAFTS_FILE, msg_prefix="Archivage Brouillon")
+        return True
+    return False
 
 def save_image(uploaded_file):
     if uploaded_file is not None:
@@ -115,11 +136,10 @@ def toggle_selection(cartel_id):
 def get_year_for_sort(entry):
     annee_text = str(entry.get('annee', '9999'))
     match = re.search(r'-?\d+', annee_text)
-    if match:
-        return int(match.group())
+    if match: return int(match.group())
     return 9999
 
-# --- GENERATEUR IMAGE (EXPORT JPEG) ---
+# --- GENERATEUR IMAGE ---
 def generate_cartel_image(data):
     img = Image.new('RGB', (A4_WIDTH_PX, A4_HEIGHT_PX), color='white')
     draw = ImageDraw.Draw(img)
@@ -141,7 +161,6 @@ def generate_cartel_image(data):
 
     margin = int(15 * MM_TO_PX)
     
-    # 1. IMAGE
     if data.get('image_path') and os.path.exists(data['image_path']):
         try:
             pil_img = Image.open(data['image_path'])
@@ -162,19 +181,18 @@ def generate_cartel_image(data):
             pos_x = box_x + (box_w - new_w) // 2
             pos_y = box_y + (box_h - new_h) // 2
             img.paste(pil_img, (pos_x, pos_y))
-        except Exception as e:
-            pass
+        except: pass
 
     credit_y = int(185 * MM_TO_PX)
-    draw.text((margin, credit_y), f"Exhumé par {data['exhume_par']}", font=font_credit, fill=(80, 80, 80))
+    draw.text((margin, credit_y), f"Exhumé par {data.get('exhume_par', '')}", font=font_credit, fill=(80, 80, 80))
 
     text_x_start = mid_x + margin
-    year_str = str(data['annee'])
+    year_str = str(data.get('annee', ''))
     bbox = draw.textbbox((0, 0), year_str, font=font_year)
     text_w = bbox[2] - bbox[0]
     draw.text((A4_WIDTH_PX - margin - text_w, int(25 * MM_TO_PX)), year_str, font=font_year, fill="black")
     
-    title_str = data['titre'].upper()
+    title_str = data.get('titre', '').upper()
     title_lines = textwrap.wrap(title_str, width=18) 
     current_y = int(50 * MM_TO_PX)
     for line in title_lines:
@@ -185,18 +203,17 @@ def generate_cartel_image(data):
         current_y += line_h + 20
     current_y += 60
 
-    desc_lines = textwrap.wrap(data['description'], width=50)
+    desc_lines = textwrap.wrap(data.get('description', ''), width=50)
     for line in desc_lines:
         draw.text((text_x_start, current_y), line, font=font_body, fill=(20, 20, 20))
         bbox = draw.textbbox((0, 0), line, font=font_body)
         line_h = bbox[3] - bbox[1]
         current_y += line_h + 15
 
-    cats_str = " • ".join(data['categories'])
+    cats_str = " • ".join(data.get('categories', []))
     cat_y = int(180 * MM_TO_PX)
     draw.text((text_x_start, cat_y), f"Catégories : {cats_str}", font=font_cats, fill="black")
     
-    # 4. QR CODE (GÉNÉRÉ UNIQUEMENT SUR L'EXPORT)
     if data.get('url_qr'):
         try:
             qr = qrcode.QRCode(version=1, box_size=10, border=1)
@@ -212,54 +229,60 @@ def generate_cartel_image(data):
     
     return img
 
-# --- PREVIEW HTML (ECRAN) ---
-def afficher_cartel_visuel(data):
+# --- PREVIEW HTML ---
+def afficher_cartel_visuel(data, is_draft=False):
     c1, c2 = st.columns([1, 1])
     with c1:
         if data.get('image_path') and os.path.exists(data['image_path']):
             st.image(data['image_path'], use_column_width=True)
         else:
             st.info("Aucune image")
-        st.markdown(f"<div style='color:gray; font-size:0.8em;'>Exhumé par {data['exhume_par']}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='color:gray; font-size:0.8em;'>Exhumé par {data.get('exhume_par', '')}</div>", unsafe_allow_html=True)
     with c2:
-        cats = " • ".join(data['categories'])
-        
-        # BOUTON LIEN (REMPLACE LE QR CODE VISUEL)
-        link_html = ""
+        cats = " • ".join(data.get('categories', []))
+        qr_html = ""
         if data.get('url_qr'):
-            link_html = f"""
-            <div style="margin-top:15px; text-align:right;">
-                <a href="{data['url_qr']}" target="_blank" style="text-decoration:none; background-color:black; color:white; padding:5px 10px; border-radius:4px; font-family:sans-serif; font-size:0.8em;">
-                   🔗 LIEN
-                </a>
+            qr_html = f"""
+            <div style="margin-top:10px; text-align:right;">
+                <a href="{data['url_qr']}" target="_blank" style="text-decoration:none; background-color:black; color:white; padding:5px 10px; border-radius:4px; font-family:sans-serif; font-size:0.8em;">🔗 LIEN</a>
             </div>
             """
-            
+        
+        draft_badge = ""
+        if is_draft:
+            draft_badge = "<div style='background:gold; color:black; padding:5px; text-align:center; font-weight:bold; margin-bottom:10px;'>⚠️ BROUILLON</div>"
+
         st.markdown(f"""
         <div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px;">
-            <div style="text-align: right; font-weight: bold; font-size: 1.2em;">{data['annee']}</div>
-            <div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase;">{data['titre']}</div>
-            <div style="font-family: serif; font-size: 1em; text-align: left;">{data['description'][:250]}...</div>
+            {draft_badge}
+            <div style="text-align: right; font-weight: bold; font-size: 1.2em;">{data.get('annee', '')}</div>
+            <div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase;">{data.get('titre', '')}</div>
+            <div style="font-family: serif; font-size: 1em; text-align: left;">{data.get('description', '')[:250]}...</div>
             <br>
             <small>Catégories : {cats}</small>
-            {link_html}
+            {qr_html}
         </div>
         """, unsafe_allow_html=True)
 
 # --- INIT DATA ---
-full_data = load_data()
+# Chargement des deux bases
+full_data = load_json(DATA_FILE)
+drafts_data = load_json(DRAFTS_FILE)
+
+# Calcul catégories
 categories_pool = set(["Énergie", "H2O", "Mobilité", "Alimentation", "Solaire", "Eolien"])
-for entry in full_data:
+for entry in full_data + drafts_data:
     for c in entry.get('categories', []):
         categories_pool.add(c)
 dynamic_cats_list = sorted(list(categories_pool))
-full_data.sort(key=get_year_for_sort)
 
+# Tri
+full_data.sort(key=get_year_for_sort)
+drafts_data.sort(key=lambda x: x.get('date', ''), reverse=True) # Brouillons par date d'ajout (récent en haut)
 
 # --- INTERFACE ---
 st.title("⚡ PALEO-ÉNERGÉTIQUE")
 
-# STYLE CSS (Boutons etc)
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&family=PT+Serif:wght@400;700&display=swap');
@@ -270,74 +293,35 @@ st.markdown(f"""
     div.stButton > button:hover {{ background-color: #D65A5A; color: white; }}
     div[data-testid="column"] button {{ width: 100%; }}
     .edit-box {{ border: 2px solid #D65A5A; padding: 15px; border-radius: 5px; background-color: white; margin-top: 10px; }}
+    /* Onglets */
+    button[data-baseweb="tab"] {{ font-family: 'PT Sans Narrow', sans-serif; font-size: 1.2em; }}
 </style>
 """, unsafe_allow_html=True)
 
-tab_create, tab_library = st.tabs(["NOUVEAU CARTEL", "BIBLIOTHÈQUE"])
+# ORDRE DES ONGLETS CHANGÉ
+tab_biblio, tab_create, tab_drafts = st.tabs(["📚 BIBLIOTHÈQUE", "➕ NOUVEAU CARTEL", "💡 IDÉES & BROUILLONS"])
 
-# === ONGLET 1 : CRÉATION ===
-with tab_create:
-    st.subheader("Créer une nouvelle fiche")
-    with st.form("new_cartel"):
-        col_gauche, col_droite = st.columns(2)
-        with col_gauche:
-            uploaded_file = st.file_uploader("Image (Optionnel)", type=['png', 'jpg', 'jpeg'])
-            exhume_par = st.text_input("Exhumé par")
-        with col_droite:
-            titre = st.text_input("Titre (Obligatoire)")
-            annee = st.text_input("Année", value="2025")
-        
-        description = st.text_area("Description", height=150)
-        c_cat, c_qr = st.columns(2)
-        with c_cat:
-            selected_cats = st.multiselect("Catégories", dynamic_cats_list)
-            new_cat = st.text_input("Autre catégorie (Ajout)")
-        with c_qr:
-            url_qr = st.text_input("Lien QR Code (Optionnel)")
-        
-        submit_create = st.form_submit_button("ENREGISTRER LE CARTEL", type="primary")
-
-    if submit_create:
-        if not titre:
-            st.error("Le titre est obligatoire.")
-        else:
-            with st.spinner('Sauvegarde et envoi vers GitHub...'):
-                final_cats = selected_cats + ([new_cat] if new_cat else [])
-                img_path = save_image(uploaded_file)
-                entry = {
-                    "id": datetime.now().strftime("%Y%m%d%H%M%S"),
-                    "titre": titre, "annee": annee, "description": description,
-                    "exhume_par": exhume_par, "categories": final_cats,
-                    "url_qr": url_qr, "image_path": img_path, "date": datetime.now().strftime("%Y-%m-%d")
-                }
-                save_data(entry)
-            
-            st.session_state.flash_msg = f"✅ Cartel '{titre}' enregistré avec succès !"
-            st.rerun()
-
-# === ONGLET 2 : BIBLIOTHÈQUE ===
-with tab_library:
+# === 1. BIBLIOTHÈQUE (DEFAULT) ===
+with tab_biblio:
     if 'selection_active' not in st.session_state: st.session_state.selection_active = set()
     if 'editing_id' not in st.session_state: st.session_state.editing_id = None
     if 'confirm_bulk_del' not in st.session_state: st.session_state.confirm_bulk_del = False
 
     if not full_data:
-        st.info("Aucune archive.")
+        st.info("La bibliothèque est vide.")
     else:
         st.markdown("### Filtres & Actions")
-        cat_filter = st.multiselect("Filtrer par catégorie", dynamic_cats_list)
+        cat_filter = st.multiselect("Filtrer par catégorie", dynamic_cats_list, key="biblio_filter")
         filtered_data = full_data
         if cat_filter:
             filtered_data = [d for d in full_data if any(cat in d['categories'] for cat in cat_filter)]
 
         count_sel = len(st.session_state.selection_active)
         
-        # Barre d'actions globale
         col_inf, col_exp, col_del_bulk = st.columns([2, 1, 1])
         with col_inf:
-            st.caption(f"{len(filtered_data)} affichés | {count_sel} sélectionnés")
+            st.caption(f"{len(filtered_data)} publiés | {count_sel} sélectionnés")
         
-        # 1. BOUTON ZIP
         with col_exp:
             if st.button(f"GÉNÉRER LE ZIP ({count_sel})", use_container_width=True):
                 if count_sel == 0:
@@ -356,28 +340,23 @@ with tab_library:
                             prog.progress((i+1)/len(final_selection))
                     st.download_button("⬇️ TÉLÉCHARGER ZIP", zip_buffer.getvalue(), "Cartels.zip", "application/zip")
 
-        # 2. BOUTON SUPPRESSION DE MASSE
         with col_del_bulk:
             if count_sel > 0:
                 if st.button("🗑️ SUPPRIMER SÉLECTION", type="primary", use_container_width=True):
                     st.session_state.confirm_bulk_del = True
         
-        # Confirmation Suppression de masse
         if st.session_state.confirm_bulk_del:
-            st.warning("Attention : Vous allez supprimer définitivement les cartels sélectionnés.")
+            st.warning("Attention : Suppression définitive.")
             col_y, col_n = st.columns(2)
-            if col_y.button("CONFIRMER SUPPRESSION", type="primary"):
-                with st.spinner('Suppression en cours...'):
-                    # On copie la liste pour itérer sans problème
+            if col_y.button("CONFIRMER", type="primary", key="conf_bulk"):
+                with st.spinner('Suppression...'):
                     for id_to_del in list(st.session_state.selection_active):
-                        delete_data(id_to_del)
-                    
+                        delete_entry(id_to_del, DATA_FILE)
                     st.session_state.selection_active = set()
                     st.session_state.confirm_bulk_del = False
                     st.session_state.flash_msg = "🗑️ Sélection supprimée."
                     st.rerun()
-                    
-            if col_n.button("ANNULER"):
+            if col_n.button("ANNULER", key="canc_bulk"):
                 st.session_state.confirm_bulk_del = False
                 st.rerun()
 
@@ -385,7 +364,6 @@ with tab_library:
         
         for row in filtered_data:
             c_chk, c_vis, c_act = st.columns([0.1, 2, 0.4]) 
-            
             with c_chk:
                 st.write("")
                 st.write("")
@@ -394,7 +372,6 @@ with tab_library:
             
             with c_vis:
                 afficher_cartel_visuel(row)
-                
                 if st.session_state.editing_id == row['id']:
                     st.markdown(f"<div class='edit-box'>Modification : <b>{row['titre']}</b></div>", unsafe_allow_html=True)
                     with st.form(f"edit_form_{row['id']}"):
@@ -413,15 +390,15 @@ with tab_library:
                         col_save, col_cancel = st.columns([1, 1])
                         with col_save:
                             if st.form_submit_button("💾 Sauvegarder"):
-                                with st.spinner('Mise à jour sur GitHub...'):
+                                with st.spinner('Mise à jour...'):
                                     n_path = row.get('image_path')
                                     if e_im: n_path = save_image(e_im)
                                     up_entry = row.copy()
                                     up_entry.update({"titre":e_ti, "annee":e_an, "description":e_de, "exhume_par":e_ex, "categories":e_ca, "url_qr":e_qr, "image_path":n_path})
-                                    update_data(up_entry)
-                                st.session_state.editing_id = None
-                                st.session_state.flash_msg = "✅ Cartel modifié avec succès !"
-                                st.rerun()
+                                    update_entry(up_entry, DATA_FILE)
+                                    st.session_state.editing_id = None
+                                    st.session_state.flash_msg = "✅ Modifié !"
+                                    st.rerun()
                         with col_cancel:
                             if st.form_submit_button("Annuler"):
                                 st.session_state.editing_id = None
@@ -433,23 +410,141 @@ with tab_library:
                 act_edit, act_del = st.columns(2)
                 with act_edit:
                     if st.button("✏️", key=f"btn_edit_{row['id']}", help="Modifier"):
-                        if st.session_state.editing_id == row['id']:
-                            st.session_state.editing_id = None
-                        else:
-                            st.session_state.editing_id = row['id']
+                        st.session_state.editing_id = row['id'] if st.session_state.editing_id != row['id'] else None
                         st.rerun()
                 with act_del:
                     if st.button("🗑️", key=f"btn_del_{row['id']}", help="Supprimer"):
                         st.session_state[f"confirm_del_{row['id']}"] = True
                 
                 if st.session_state.get(f"confirm_del_{row['id']}"):
-                    st.markdown("<small style='color:red; font-weight:bold;'>Supprimer ?</small>", unsafe_allow_html=True)
+                    st.markdown("<small style='color:red;'>Supprimer ?</small>", unsafe_allow_html=True)
                     if st.button("OUI", key=f"yes_del_{row['id']}"):
-                        with st.spinner('Suppression sur GitHub...'):
-                            delete_data(row['id'])
-                        st.session_state.flash_msg = "🗑️ Cartel supprimé."
+                        with st.spinner('Suppression...'):
+                            delete_entry(row['id'], DATA_FILE)
+                        st.session_state.flash_msg = "🗑️ Supprimé."
                         st.rerun()
                     if st.button("NON", key=f"no_del_{row['id']}"):
                         st.session_state[f"confirm_del_{row['id']}"] = False
                         st.rerun()
+            st.divider()
+
+# === 2. CRÉATION (DIRECTE) ===
+with tab_create:
+    st.subheader("Créer une nouvelle fiche officielle")
+    with st.form("new_cartel"):
+        col_gauche, col_droite = st.columns(2)
+        with col_gauche:
+            uploaded_file = st.file_uploader("Image (Optionnel)", type=['png', 'jpg', 'jpeg'])
+            exhume_par = st.text_input("Exhumé par")
+        with col_droite:
+            titre = st.text_input("Titre (Obligatoire)")
+            annee = st.text_input("Année", value="2025")
+        description = st.text_area("Description", height=150)
+        c_cat, c_qr = st.columns(2)
+        with c_cat:
+            selected_cats = st.multiselect("Catégories", dynamic_cats_list)
+            new_cat = st.text_input("Autre catégorie (Ajout)")
+        with c_qr:
+            url_qr = st.text_input("Lien QR Code (Optionnel)")
+        submit_create = st.form_submit_button("ENREGISTRER LE CARTEL", type="primary")
+
+    if submit_create:
+        if not titre:
+            st.error("Le titre est obligatoire.")
+        else:
+            with st.spinner('Envoi vers la bibliothèque...'):
+                final_cats = selected_cats + ([new_cat] if new_cat else [])
+                img_path = save_image(uploaded_file)
+                entry = {
+                    "id": datetime.now().strftime("%Y%m%d%H%M%S"),
+                    "titre": titre, "annee": annee, "description": description,
+                    "exhume_par": exhume_par, "categories": final_cats,
+                    "url_qr": url_qr, "image_path": img_path, "date": datetime.now().strftime("%Y-%m-%d")
+                }
+                save_entry(entry, DATA_FILE)
+            st.session_state.flash_msg = f"✅ Cartel '{titre}' publié !"
+            st.rerun()
+
+# === 3. IDÉES & BROUILLONS (NOUVEAU) ===
+with tab_drafts:
+    st.subheader("💡 Boîte à idées & Brouillons")
+    st.caption("Ajoutez ici des idées en vrac. Vous pourrez les modifier et les publier plus tard.")
+    
+    # Formulaire d'ajout rapide (Expander pour ne pas encombrer)
+    with st.expander("➕ Ajouter une idée / un brouillon", expanded=False):
+        with st.form("new_draft"):
+            d_titre = st.text_input("Titre (Obligatoire)")
+            d_desc = st.text_area("Notes / Description")
+            d_img = st.file_uploader("Image (Optionnel)", type=['png', 'jpg'], key="draft_img")
+            d_cats = st.multiselect("Catégories", dynamic_cats_list, key="draft_cats")
+            d_submit = st.form_submit_button("Sauvegarder le brouillon")
+            
+            if d_submit:
+                if not d_titre:
+                    st.error("Titre obligatoire")
+                else:
+                    d_path = save_image(d_img)
+                    draft_entry = {
+                        "id": "draft_" + datetime.now().strftime("%Y%m%d%H%M%S"),
+                        "titre": d_titre, "annee": "2025", "description": d_desc,
+                        "exhume_par": "", "categories": d_cats, "url_qr": "", 
+                        "image_path": d_path, "date": datetime.now().strftime("%Y-%m-%d")
+                    }
+                    save_entry(draft_entry, DRAFTS_FILE, msg_prefix="Brouillon")
+                    st.session_state.flash_msg = "💡 Idée sauvegardée !"
+                    st.rerun()
+    
+    st.divider()
+    
+    # Liste des brouillons
+    if not drafts_data:
+        st.info("Aucun brouillon.")
+    else:
+        for d_row in drafts_data:
+            c_d_vis, c_d_act = st.columns([2, 1])
+            
+            with c_d_vis:
+                # On utilise la même fonction visuelle mais avec un flag is_draft
+                afficher_cartel_visuel(d_row, is_draft=True)
+                
+                # MODE EDITION BROUILLON
+                if st.session_state.get(f"edit_draft_{d_row['id']}"):
+                    st.markdown(f"<div class='edit-box'>Édition Brouillon</div>", unsafe_allow_html=True)
+                    with st.form(f"form_edit_draft_{d_row['id']}"):
+                        ed_ti = st.text_input("Titre", value=d_row['titre'])
+                        ed_an = st.text_input("Année", value=d_row['annee'])
+                        ed_ex = st.text_input("Exhumé par", value=d_row['exhume_par'])
+                        ed_im = st.file_uploader("Image", type=['png', 'jpg'])
+                        ed_de = st.text_area("Desc", value=d_row['description'])
+                        ed_ca = st.multiselect("Catégories", dynamic_cats_list, default=[c for c in d_row['categories'] if c in dynamic_cats_list])
+                        
+                        if st.form_submit_button("💾 Mettre à jour"):
+                            n_p = d_row.get('image_path')
+                            if ed_im: n_p = save_image(ed_im)
+                            up_dr = d_row.copy()
+                            up_dr.update({"titre":ed_ti, "annee":ed_an, "exhume_par":ed_ex, "description":ed_de, "categories":ed_ca, "image_path":n_p})
+                            update_entry(up_dr, DRAFTS_FILE, msg_prefix="Modif Brouillon")
+                            st.session_state[f"edit_draft_{d_row['id']}"] = False
+                            st.rerun()
+
+            with c_d_act:
+                st.write("")
+                # BOUTON PUBLIER (Le plus important)
+                if st.button("🚀 PUBLIER EN BIBLIOTHÈQUE", key=f"pub_{d_row['id']}", type="primary", use_container_width=True):
+                    with st.spinner("Publication officielle..."):
+                        publish_draft(d_row['id'])
+                    st.session_state.flash_msg = f"🎉 '{d_row['titre']}' est maintenant publié !"
+                    st.rerun()
+                
+                st.write("")
+                c_edit, c_del = st.columns(2)
+                with c_edit:
+                    if st.button("✏️", key=f"btn_ed_dr_{d_row['id']}", help="Modifier"):
+                        st.session_state[f"edit_draft_{d_row['id']}"] = not st.session_state.get(f"edit_draft_{d_row['id']}", False)
+                        st.rerun()
+                with c_del:
+                    if st.button("🗑️", key=f"btn_del_dr_{d_row['id']}", help="Jeter"):
+                        delete_entry(d_row['id'], DRAFTS_FILE, msg_prefix="Del Brouillon")
+                        st.rerun()
+            
             st.divider()
