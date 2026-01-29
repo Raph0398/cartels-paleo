@@ -74,6 +74,16 @@ def save_data(new_entry):
     with open(DATA_FILE, 'w') as f:
         json.dump(data, f, indent=4)
 
+def update_data(updated_entry):
+    """Met à jour un cartel existant"""
+    data = load_data()
+    for i, d in enumerate(data):
+        if d['id'] == updated_entry['id']:
+            data[i] = updated_entry
+            break
+    with open(DATA_FILE, 'w') as f:
+        json.dump(data, f, indent=4)
+
 def delete_data(cartel_id):
     data = load_data()
     new_data = [d for d in data if d['id'] != cartel_id]
@@ -95,13 +105,11 @@ def toggle_selection(cartel_id):
         st.session_state.selection_active.add(cartel_id)
 
 def get_year_for_sort(entry):
-    """Extrait une valeur numérique de l'année pour le tri chronologique"""
     annee_text = str(entry.get('annee', '9999'))
-    # On cherche le premier nombre dans le texte (ex: "1200" dans "vers 1200")
     match = re.search(r'-?\d+', annee_text)
     if match:
         return int(match.group())
-    return 9999 # Si pas de nombre, on met à la fin
+    return 9999
 
 # --- FONCTION DE DESSIN (JPEG GENERATOR) ---
 def generate_cartel_image(data):
@@ -245,21 +253,14 @@ def afficher_cartel_visuel(data):
         """, unsafe_allow_html=True)
 
 # --- PRÉPARATION DES DONNÉES GLOBALES ---
-# On charge les données au début pour calculer les catégories dynamiques
 full_data = load_data()
-
-# 1. Calcul des catégories dynamiques
-# On part de la liste de base
 categories_pool = set(["Énergie", "H2O", "Mobilité", "Alimentation", "Solaire", "Eolien"])
-# On ajoute tout ce qui a été trouvé dans la base de données
 for entry in full_data:
     for c in entry.get('categories', []):
         categories_pool.add(c)
-# On convertit en liste triée alphabétiquement
 dynamic_cats_list = sorted(list(categories_pool))
 
-# 2. Tri Chronologique des données
-# On utilise la fonction get_year_for_sort pour trier par année croissante
+# Tri Chronologique
 full_data.sort(key=get_year_for_sort)
 
 
@@ -287,12 +288,11 @@ with tab_create:
         st.markdown("**Options & Catégories**")
         c_cat, c_qr = st.columns(2)
         with c_cat:
-            # On utilise la liste DYNAMIQUE ici
             selected_cats = st.multiselect("Catégories", dynamic_cats_list)
-            new_cat = st.text_input("Autre catégorie (Sera ajoutée à la liste)")
+            new_cat = st.text_input("Autre catégorie (Ajout)")
         
         with c_qr:
-            url_qr = st.text_input("Lien pour le QR Code (Optionnel)", help="Si rempli, un QR Code apparaîtra en bas à droite.")
+            url_qr = st.text_input("Lien pour le QR Code (Optionnel)")
         
         submit_create = st.form_submit_button("ENREGISTRER LE CARTEL", type="primary")
 
@@ -314,8 +314,7 @@ with tab_create:
                 "date": datetime.now().strftime("%Y-%m-%d")
             }
             save_data(entry)
-            st.success("✅ Cartel enregistré ! Allez dans l'onglet Bibliothèque pour le voir.")
-            # Astuce pour recharger la page et mettre à jour la liste des catégories immédiatement
+            st.success("✅ Cartel enregistré !")
             st.rerun()
 
 # === ONGLET 2 : BIBLIOTHÈQUE ===
@@ -323,16 +322,13 @@ with tab_library:
     if 'selection_active' not in st.session_state:
         st.session_state.selection_active = set()
 
-    # On utilise full_data qui est déjà trié chronologiquement
     if not full_data:
         st.info("Aucune archive.")
     else:
-        # --- FILTRES ---
-        # On peut aussi filtrer les catégories pour l'affichage
-        st.markdown("### Filtres")
+        # Filtres
+        st.markdown("### Filtres & Actions")
         cat_filter = st.multiselect("Filtrer par catégorie", dynamic_cats_list)
         
-        # Application du filtre visuel
         filtered_data = full_data
         if cat_filter:
             filtered_data = [d for d in full_data if any(cat in d['categories'] for cat in cat_filter)]
@@ -340,40 +336,35 @@ with tab_library:
         count_total = len(filtered_data)
         count_sel = len(st.session_state.selection_active)
         
-        st.subheader(f"🗃️ Liste ({count_total} affichés, triés par année) - {count_sel} sélectionné(s)")
+        col_info, col_export = st.columns([2, 1])
+        with col_info:
+            st.caption(f"Liste : {count_total} affichés (tri chronologique) | {count_sel} sélectionné(s)")
         
-        # --- BOUTON D'EXPORT ---
-        if st.button(f"GÉNÉRER LE ZIP ({count_sel} IMAGES)"):
-            if count_sel == 0:
-                st.error("Sélectionnez au moins un cartel.")
-            else:
-                final_selection = [d for d in full_data if d['id'] in st.session_state.selection_active]
-                
-                zip_buffer = io.BytesIO()
-                with zipfile.ZipFile(zip_buffer, "w") as zf:
-                    progress_bar = st.progress(0)
-                    for i, item in enumerate(final_selection):
-                        img = generate_cartel_image(item)
-                        img_byte_arr = io.BytesIO()
-                        img.save(img_byte_arr, format='JPEG', quality=95)
-                        filename = f"Cartel_{item['titre'].replace(' ','_')}_{item['id']}.jpg"
-                        zf.writestr(filename, img_byte_arr.getvalue())
-                        progress_bar.progress((i + 1) / len(final_selection))
-                
-                st.success("✅ ZIP généré avec succès !")
-                st.download_button(
-                    label="⬇️ TÉLÉCHARGER LE DOSSIER ZIP",
-                    data=zip_buffer.getvalue(),
-                    file_name="Cartels_Paleo_JPEG.zip",
-                    mime="application/zip"
-                )
+        with col_export:
+            if st.button(f"GÉNÉRER LE ZIP ({count_sel})", use_container_width=True):
+                if count_sel == 0:
+                    st.error("Sélection vide.")
+                else:
+                    final_selection = [d for d in full_data if d['id'] in st.session_state.selection_active]
+                    zip_buffer = io.BytesIO()
+                    with zipfile.ZipFile(zip_buffer, "w") as zf:
+                        progress = st.progress(0)
+                        for i, item in enumerate(final_selection):
+                            img = generate_cartel_image(item)
+                            img_byte_arr = io.BytesIO()
+                            img.save(img_byte_arr, format='JPEG', quality=95)
+                            fname = f"Cartel_{item['titre'].replace(' ','_')}_{item['id']}.jpg"
+                            zf.writestr(fname, img_byte_arr.getvalue())
+                            progress.progress((i + 1) / len(final_selection))
+                    st.success("ZIP Prêt !")
+                    st.download_button("⬇️ TÉLÉCHARGER", zip_buffer.getvalue(), "Cartels.zip", "application/zip")
 
         st.divider()
         
         # Liste Filtrée
         for row in filtered_data:
-            # Layout: Checkbox | Visuel | Actions (Supprimer)
-            cols = st.columns([0.2, 2, 0.5]) 
+            # Structure : Case | Visuel | Actions
+            cols = st.columns([0.1, 2, 0.2]) 
             
             with cols[0]:
                 st.write("")
@@ -383,17 +374,47 @@ with tab_library:
             
             with cols[1]:
                 afficher_cartel_visuel(row)
-            
+                
+                # Zone de modification (Expander)
+                with st.expander(f"✏️ Modifier '{row['titre']}'"):
+                    with st.form(f"edit_{row['id']}"):
+                        e_c1, e_c2 = st.columns(2)
+                        with e_c1:
+                            e_titre = st.text_input("Titre", value=row['titre'])
+                            e_annee = st.text_input("Année", value=row['annee'])
+                            e_exhume = st.text_input("Exhumé par", value=row['exhume_par'])
+                            e_img = st.file_uploader("Remplacer l'image (Optionnel)", type=['png', 'jpg'])
+                        with e_c2:
+                            e_desc = st.text_area("Description", value=row['description'], height=150)
+                            e_cats = st.multiselect("Catégories", dynamic_cats_list, default=[c for c in row['categories'] if c in dynamic_cats_list])
+                            e_qr = st.text_input("Lien QR Code", value=row.get('url_qr', ''))
+                        
+                        if st.form_submit_button("💾 Enregistrer les modifications"):
+                            # Logique de mise à jour
+                            new_img_path = row['image_path']
+                            if e_img:
+                                new_img_path = save_image(e_img)
+                            
+                            updated_entry = row.copy()
+                            updated_entry.update({
+                                "titre": e_titre, "annee": e_annee, "exhume_par": e_exhume,
+                                "description": e_desc, "categories": e_cats, "url_qr": e_qr,
+                                "image_path": new_img_path
+                            })
+                            update_data(updated_entry)
+                            st.success("Modifié !")
+                            st.rerun()
+
             with cols[2]:
                 st.write("")
                 st.write("")
-                # Bouton de suppression
-                if st.button("🗑️", key=f"del_{row['id']}", help="Supprimer ce cartel"):
+                # Bouton Suppression
+                if st.button("🗑️", key=f"del_{row['id']}"):
                     st.session_state[f"confirm_del_{row['id']}"] = True
                 
                 if st.session_state.get(f"confirm_del_{row['id']}"):
                     st.warning("Sûr ?")
-                    if st.button("Confirmer", key=f"yes_del_{row['id']}"):
+                    if st.button("Oui", key=f"yes_del_{row['id']}"):
                         delete_data(row['id'])
                         st.rerun()
             
