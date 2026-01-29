@@ -168,10 +168,8 @@ def get_year_for_sort(entry):
 
 # --- OUTILS DE TEXTE PIL ---
 def wrap_text_pixel(text, font, max_width, draw):
-    """Découpe le texte en lignes selon la largeur en pixels"""
     lines = []
     paragraphs = text.split('\n')
-    
     for paragraph in paragraphs:
         if not paragraph:
             lines.append("")
@@ -191,7 +189,7 @@ def wrap_text_pixel(text, font, max_width, draw):
         lines.append(current_line)
     return lines
 
-# --- GENERATEUR IMAGE OPTIMISÉ ---
+# --- GENERATEUR IMAGE ---
 def generate_cartel_image(data):
     img = Image.new('RGB', (A4_WIDTH_PX, A4_HEIGHT_PX), color='white')
     draw = ImageDraw.Draw(img)
@@ -205,11 +203,12 @@ def generate_cartel_image(data):
     font_year_size = 90
     font_title_size = 120
     font_body_base_size = 55
+    font_cats_size = 40
     
     font_year = load_font("PTSansNarrow-Bold.ttf", font_year_size)
     font_title = load_font("PTSansNarrow-Bold.ttf", font_title_size)
     font_credit = load_font("PTSansNarrow-Bold.ttf", 45)
-    font_cats = load_font("PTSansNarrow-Regular.ttf", 40)
+    font_cats = load_font("PTSansNarrow-Regular.ttf", font_cats_size)
 
     margin = int(15 * MM_TO_PX)
     
@@ -298,20 +297,25 @@ def generate_cartel_image(data):
             qr_size_px = int(30 * MM_TO_PX)
             qr_img = qr_img.resize((qr_size_px, qr_size_px), Image.Resampling.NEAREST)
             qr_x = A4_WIDTH_PX - margin - qr_size_px
-            qr_y = A4_HEIGHT_PX - margin - qr_size_px
+            qr_y = cat_y - 10 
             img.paste(qr_img, (qr_x, qr_y))
         except: pass
     
     return img
 
-# --- PREVIEW HTML ---
+# --- PREVIEW HTML CORRIGÉE (SANS BUG) ---
 def afficher_cartel_visuel(data, is_draft=False):
     c1, c2 = st.columns([1, 1])
     with c1:
-        if data.get('image_path') and os.path.exists(data['image_path']):
-            st.image(data['image_path'], use_column_width=True)
-        else:
-            st.info("Aucune image")
+        # Sécurité anti-crash image
+        try:
+            if data.get('image_path') and os.path.exists(data['image_path']):
+                st.image(data['image_path'], use_column_width=True)
+            else:
+                st.info("No Image")
+        except:
+            st.warning("Img Error")
+
         st.markdown(f"<div style='color:gray; font-size:0.8em;'>Exhumé par {data.get('exhume_par', '')}</div>", unsafe_allow_html=True)
     with c2:
         cats = " • ".join(data.get('categories', []))
@@ -324,19 +328,12 @@ def afficher_cartel_visuel(data, is_draft=False):
         if is_draft:
             draft_badge = "<div style='background:gold; color:black; padding:5px; text-align:center; font-weight:bold; margin-bottom:10px;'>⚠️ BROUILLON</div>"
 
-        full_description = data.get('description', '').replace('\n', '<br>')
+        full_desc = data.get('description', '').replace('\n', '<br>')
 
-        st.markdown(f"""
-<div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px;">
-{draft_badge}
-<div style="text-align: right; font-weight: bold; font-size: 1.2em;">{data.get('annee', '')}</div>
-<div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase;">{data.get('titre', '')}</div>
-<div style="font-family: serif; font-size: 1em; text-align: left;">{full_description}</div>
-<br>
-<small>Catégories : {cats}</small>
-{link_html}
-</div>
-""", unsafe_allow_html=True)
+        # HTML COMPACT POUR ÉVITER LES BUGS D'INDENTATION
+        html_block = f"""<div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px; font-family: serif;">{draft_badge}<div style="text-align: right; font-weight: bold; font-size: 1.2em; font-family: sans-serif;">{data.get('annee', '')}</div><div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase; font-family: sans-serif;">{data.get('titre', '')}</div><div style="text-align: left;">{full_desc}</div><br><small style="font-family: sans-serif;">Catégories : {cats}</small>{link_html}</div>"""
+        
+        st.markdown(html_block, unsafe_allow_html=True)
 
 # --- INIT DATA ---
 full_data = load_json(DATA_FILE)
@@ -367,12 +364,12 @@ st.markdown(f"""
         border: 1px solid #E0B0B0;
     }}
     
-    /* STYLE DES BOUTONS REVU - MINIMALISTE */
+    /* BOUTONS MINIMALISTES */
     div.stButton > button {{
         background-color: transparent;
         color: black;
         border: 2px solid black;
-        border-radius: 0px; /* Angles droits */
+        border-radius: 0px;
         font-family: 'PT Sans Narrow', sans-serif;
         text-transform: uppercase;
         padding: 5px 15px;
@@ -408,7 +405,6 @@ if selected_page == "📚 BIBLIOTHÈQUE":
         if cat_filter:
             filtered_data = [d for d in full_data if any(cat in d['categories'] for cat in cat_filter)]
 
-        # BOUTONS SELECTION
         col_sel_all, col_desel_all, col_spacer = st.columns([1, 1, 2])
         if col_sel_all.button("✅ Tout sélectionner"):
             for d in filtered_data:
