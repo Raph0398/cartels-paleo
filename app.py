@@ -2,9 +2,11 @@ import streamlit as st
 import pandas as pd
 import json
 import os
-from fpdf import FPDF
+import zipfile
+import io
+import textwrap
 from datetime import datetime
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 # --- CONFIGURATION INITIALE ---
 st.set_page_config(page_title="Paleo Maker", layout="wide", initial_sidebar_state="collapsed")
@@ -13,6 +15,12 @@ DATA_FILE = "db_cartels.json"
 IMG_FOLDER = "images_archive"
 PINK_RGB = (252, 237, 236)
 PINK_HEX = "#FCEDEC"
+
+# Configuration DPI pour impression (A4 à 300 DPI)
+DPI = 300
+A4_WIDTH_PX = 3508
+A4_HEIGHT_PX = 2480
+MM_TO_PX = A4_WIDTH_PX / 297
 
 # Création des dossiers
 if not os.path.exists(IMG_FOLDER):
@@ -72,133 +80,141 @@ def save_image(uploaded_file):
         return file_path
     return None
 
-# --- GESTION DE LA SÉLECTION (NOUVEAU SYSTÈME) ---
-# Cette fonction est appelée à chaque clic sur une case
 def toggle_selection(cartel_id):
     if cartel_id in st.session_state.selection_active:
         st.session_state.selection_active.remove(cartel_id)
     else:
         st.session_state.selection_active.add(cartel_id)
 
-# --- AFFICHAGE VISUEL ---
-def afficher_cartel_visuel(data):
-    """Affiche le cartel tel qu'il apparaîtra, pour vérification visuelle"""
-    c1, c2 = st.columns([1, 1])
+# --- FONCTION DE DESSIN (JPEG GENERATOR) ---
+def generate_cartel_image(data):
+    # 1. Création toile blanche A4 Paysage
+    img = Image.new('RGB', (A4_WIDTH_PX, A4_HEIGHT_PX), color='white')
+    draw = ImageDraw.Draw(img)
     
+    # 2. Zone Rose (Moitié Droite)
+    mid_x = int(A4_WIDTH_PX / 2)
+    draw.rectangle([mid_x, 0, A4_WIDTH_PX, A4_HEIGHT_PX], fill=PINK_RGB)
+    
+    # --- GESTION DES POLICES ---
+    # Facteur de taille : 300 DPI demande des polices bien plus grosses (approx x4 par rapport à l'écran)
+    try:
+        font_year = ImageFont.truetype("PTSansNarrow-Bold.ttf", 90)
+        font_title = ImageFont.truetype("PTSansNarrow-Bold.ttf", 120)
+        font_body = ImageFont.truetype("PTSerif-Regular.ttf", 55)
+        font_credit = ImageFont.truetype("PTSansNarrow-Bold.ttf", 45)
+        font_cats = ImageFont.truetype("PTSansNarrow-Regular.ttf", 40)
+    except:
+        # Fallback si fichiers absents
+        font_year = ImageFont.load_default()
+        font_title = font_year
+        font_body = font_year
+        font_credit = font_year
+        font_cats = font_year
+
+    # Marges en pixels (15mm ~ 177px)
+    margin = int(15 * MM_TO_PX)
+    
+    # --- PARTIE GAUCHE (IMAGE) ---
+    if data['image_path'] and os.path.exists(data['image_path']):
+        try:
+            pil_img = Image.open(data['image_path'])
+            
+            # Zone dispo pour l'image
+            box_x = margin
+            box_y = int(30 * MM_TO_PX)
+            box_w = mid_x - (2 * margin) # ~148mm de large dispo
+            box_h = int(145 * MM_TO_PX)  # Hauteur contrainte
+            
+            # Redimensionnement (Fit)
+            img_ratio = pil_img.width / pil_img.height
+            box_ratio = box_w / box_h
+            
+            if img_ratio > box_ratio:
+                # Image plus large que la boite
+                new_w = box_w
+                new_h = int(box_w / img_ratio)
+            else:
+                # Image plus haute que la boite
+                new_h = box_h
+                new_w = int(box_h * img_ratio)
+                
+            pil_img = pil_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+            
+            # Centrage
+            pos_x = box_x + (box_w - new_w) // 2
+            pos_y = box_y + (box_h - new_h) // 2
+            
+            img.paste(pil_img, (pos_x, pos_y))
+        except Exception as e:
+            print(f"Erreur image: {e}")
+
+    # Crédit (Bas Gauche)
+    credit_y = int(185 * MM_TO_PX)
+    draw.text((margin, credit_y), f"Exhumé par {data['exhume_par']}", font=font_credit, fill=(80, 80, 80))
+
+    # --- PARTIE DROITE (TEXTE) ---
+    text_x_start = mid_x + margin
+    text_width_limit = mid_x - (2 * margin)
+    
+    # 1. Année (Aligné droite)
+    year_str = str(data['annee'])
+    # On utilise textbbox pour obtenir la taille
+    bbox = draw.textbbox((0, 0), year_str, font=font_year)
+    text_w = bbox[2] - bbox[0]
+    draw.text((A4_WIDTH_PX - margin - text_w, int(25 * MM_TO_PX)), year_str, font=font_year, fill="black")
+    
+    # 2. Titre (Aligné droite + Multi-lignes si trop long)
+    title_str = data['titre'].upper()
+    # Wrapping simple du titre (environ 15 chars par ligne pour cette taille de police)
+    title_lines = textwrap.wrap(title_str, width=18) 
+    current_y = int(50 * MM_TO_PX)
+    
+    for line in title_lines:
+        bbox = draw.textbbox((0, 0), line, font=font_title)
+        line_w = bbox[2] - bbox[0]
+        line_h = bbox[3] - bbox[1]
+        draw.text((A4_WIDTH_PX - margin - line_w, current_y), line, font=font_title, fill="black")
+        current_y += line_h + 20 # Espacement interligne
+    
+    current_y += 60 # Marge après titre
+
+    # 3. Description (Aligné gauche + Wrapping)
+    # Environ 45 caractères par ligne pour la police body
+    desc_lines = textwrap.wrap(data['description'], width=50)
+    for line in desc_lines:
+        draw.text((text_x_start, current_y), line, font=font_body, fill=(20, 20, 20))
+        bbox = draw.textbbox((0, 0), line, font=font_body)
+        line_h = bbox[3] - bbox[1]
+        current_y += line_h + 15 # Espacement
+
+    # 4. Catégories (Bas Droite, Aligné Gauche)
+    cats_str = " • ".join(data['categories'])
+    cat_y = int(180 * MM_TO_PX)
+    draw.text((text_x_start, cat_y), f"Catégories : {cats_str}", font=font_cats, fill="black")
+    
+    return img
+
+# --- AFFICHAGE VISUEL (PREVIEW WEB) ---
+def afficher_cartel_visuel(data):
+    c1, c2 = st.columns([1, 1])
     with c1:
         if data['image_path'] and os.path.exists(data['image_path']):
             st.image(data['image_path'], use_column_width=True)
         else:
-            st.warning("Image manquante")
-        st.markdown(f"<div style='font-family:sans-serif; color:gray; margin-top:5px; font-size:0.8em;'>Exhumé par {data['exhume_par']}</div>", unsafe_allow_html=True)
-    
+            st.warning("No Image")
+        st.markdown(f"<div style='color:gray; font-size:0.8em;'>Exhumé par {data['exhume_par']}</div>", unsafe_allow_html=True)
     with c2:
         cats = " • ".join(data['categories'])
         st.markdown(f"""
-        <div style="background-color: {PINK_HEX}; padding: 25px; height: 100%; min-height: 400px; border-radius: 2px; color: black; display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
-                <div style="text-align: right; font-weight: bold; font-family: sans-serif; font-size: 1.4em;">{data['annee']}</div>
-                <div style="text-align: right; font-weight: bold; font-family: sans-serif; font-size: 1.8em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase;">{data['titre']}</div>
-                <div style="font-family: serif; font-size: 1.1em; line-height: 1.4; text-align: left;">{data['description'].replace(chr(10), '<br>')}</div>
-            </div>
-            <div style="margin-top: 30px;">
-                <small style="font-family: sans-serif; font-size: 0.9em;">Catégories : {cats}</small><br>
-                </div>
+        <div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px;">
+            <div style="text-align: right; font-weight: bold; font-size: 1.2em;">{data['annee']}</div>
+            <div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase;">{data['titre']}</div>
+            <div style="font-family: serif; font-size: 1em; text-align: left;">{data['description'][:300]}...</div>
+            <br>
+            <small>Catégories : {cats}</small>
         </div>
         """, unsafe_allow_html=True)
-
-# --- GÉNÉRATEUR PDF ---
-class PDF(FPDF):
-    def __init__(self):
-        super().__init__(orientation='L', unit='mm', format='A4')
-        self.set_auto_page_break(False)
-        self.set_margins(0, 0, 0)
-        
-        self.font_header = 'Helvetica'
-        self.font_body = 'Times'
-        
-        try:
-            if os.path.exists('PTSansNarrow-Bold.ttf'):
-                self.add_font('PTSansNarrow', 'B', 'PTSansNarrow-Bold.ttf')
-                self.add_font('PTSansNarrow', '', 'PTSansNarrow-Regular.ttf')
-                self.font_header = 'PTSansNarrow'
-            if os.path.exists('PTSerif-Regular.ttf'):
-                self.add_font('PTSerif', '', 'PTSerif-Regular.ttf')
-                self.font_body = 'PTSerif'
-        except: pass
-
-    def add_cartel_page(self, data):
-        self.add_page()
-        
-        W_PAGE = 297
-        H_PAGE = 210
-        MID = W_PAGE / 2
-        
-        # 1. FOND ROSE (Droite)
-        self.set_fill_color(PINK_RGB[0], PINK_RGB[1], PINK_RGB[2])
-        self.rect(x=MID, y=0, w=MID, h=H_PAGE, style='F')
-
-        # 2. IMAGE (CALCUL INTELLIGENT DE LA TAILLE)
-        if data['image_path'] and os.path.exists(data['image_path']):
-            try:
-                BOX_X = 15
-                BOX_Y = 30
-                BOX_W = MID - 30
-                BOX_H = 145 
-
-                with Image.open(data['image_path']) as img:
-                    orig_w, orig_h = img.size
-                
-                ratio_w = BOX_W / orig_w
-                ratio_h = BOX_H / orig_h
-                scale = min(ratio_w, ratio_h)
-                
-                new_w = orig_w * scale
-                new_h = orig_h * scale
-
-                offset_x = (BOX_W - new_w) / 2
-                offset_y = (BOX_H - new_h) / 2
-                
-                final_x = BOX_X + offset_x
-                final_y = BOX_Y + offset_y
-
-                self.image(data['image_path'], x=final_x, y=final_y, w=new_w, h=new_h)
-            except Exception as e:
-                print(f"Erreur image: {e}")
-
-        # 3. CRÉDIT (Bas Gauche)
-        self.set_xy(15, 185)
-        self.set_font(self.font_header, 'B', 10) 
-        self.set_text_color(80, 80, 80)
-        self.cell(100, 10, f"Exhumé par {data['exhume_par']}")
-
-        # --- PARTIE DROITE ---
-        MARGIN_R = 15
-        X_TEXT = MID + MARGIN_R
-        W_TEXT = MID - (MARGIN_R * 2)
-
-        # 4. ANNÉE
-        self.set_xy(X_TEXT, 25)
-        self.set_font(self.font_header, 'B', 18)
-        self.set_text_color(0, 0, 0)
-        self.cell(W_TEXT, 10, str(data['annee']), align='R')
-        
-        # 5. TITRE
-        self.set_xy(X_TEXT, self.get_y() + 10)
-        self.set_font(self.font_header, 'B', 24)
-        self.multi_cell(W_TEXT, 10, data['titre'].upper(), align='R')
-        
-        # 6. DESCRIPTION
-        self.set_xy(X_TEXT, self.get_y() + 10)
-        self.set_font(self.font_body, '', 11)
-        self.set_text_color(20, 20, 20)
-        self.multi_cell(W_TEXT, 6, data['description'], align='L')
-        
-        # 7. FOOTER
-        self.set_xy(X_TEXT, 180)
-        self.set_font(self.font_header, '', 9)
-        cats_str = " • ".join(data['categories'])
-        self.cell(W_TEXT, 5, f"Catégories : {cats_str}", align='L', ln=True)
 
 # --- INTERFACE ---
 st.title("⚡ PALEO-ÉNERGÉTIQUE")
@@ -209,7 +225,6 @@ tab_create, tab_library = st.tabs(["NOUVEAU CARTEL", "BIBLIOTHÈQUE & EXPORT"])
 with tab_create:
     col_input, col_preview = st.columns([1, 1.5])
     preview_data = None
-
     with col_input:
         st.subheader("1. Saisie")
         with st.form("new_cartel"):
@@ -218,40 +233,34 @@ with tab_create:
             titre = st.text_input("Titre")
             description = st.text_area("Description", height=150)
             exhume_par = st.text_input("Exhumé par")
-            
             cats_base = ["Énergie", "H2O", "Mobilité", "Alimentation", "Solaire", "Eolien"]
             selected_cats = st.multiselect("Catégories", cats_base)
             new_cat = st.text_input("Autre catégorie")
-            
-            submit_create = st.form_submit_button("ENREGISTRER LE CARTEL")
+            submit_create = st.form_submit_button("ENREGISTRER")
 
     if submit_create and uploaded_file and titre:
         final_cats = selected_cats + ([new_cat] if new_cat else [])
         img_path = save_image(uploaded_file)
-        
         entry = {
             "id": datetime.now().strftime("%Y%m%d%H%M%S"),
             "titre": titre, "annee": annee, "description": description,
             "exhume_par": exhume_par, "categories": final_cats,
             "image_path": img_path, "date": datetime.now().strftime("%Y-%m-%d")
         }
-        
         save_data(entry)
         st.success("✅ Cartel enregistré !")
         preview_data = entry
     
     with col_preview:
-        st.subheader("2. Résultat final")
+        st.subheader("2. Résultat")
         if preview_data:
             afficher_cartel_visuel(preview_data)
-        elif 'last_preview' in st.session_state:
+        elif 'last_preview' in st.session_state: # Astuce pour garder l'affichage
              afficher_cartel_visuel(st.session_state.last_preview)
-        else:
-            st.info("Remplissez le formulaire à gauche.")
 
 # === ONGLET 2 : BIBLIOTHÈQUE ===
 with tab_library:
-    # 1. Initialisation de la mémoire de sélection (Si elle n'existe pas, on la crée)
+    # Init Session pour sélection
     if 'selection_active' not in st.session_state:
         st.session_state.selection_active = set()
 
@@ -261,60 +270,52 @@ with tab_library:
     if not data:
         st.info("Aucune archive.")
     else:
-        # Affiche le compteur en temps réel
         count = len(st.session_state.selection_active)
-        st.subheader(f"🗃️ Archives ({len(data)}) - Sélection actuelle : {count} cartel(s)")
+        st.subheader(f"🗃️ Archives - {count} sélectionné(s)")
         
-        # Bouton d'action PRINCIPAL
-        col_btn, col_info = st.columns([1, 2])
-        with col_btn:
-            if st.button(f"GÉNÉRER PDF AVEC {count} CARTELS"):
-                if count == 0:
-                    st.error("Sélectionnez au moins un cartel !")
-                else:
-                    # Récupération des données correspondant aux IDs sélectionnés
-                    final_selection = [d for d in data if d['id'] in st.session_state.selection_active]
-                    
-                    # Génération PDF
-                    pdf = PDF()
-                    for item in final_selection:
-                        pdf.add_cartel_page(item)
-                    
-                    try:
-                        pdf_bytes = bytes(pdf.output())
-                    except TypeError:
-                        pdf_bytes = pdf.output(dest='S').encode('latin-1')
-                    
-                    st.session_state['pdf_bytes'] = pdf_bytes
-                    st.session_state['pdf_ready'] = True
-                    st.success("PDF généré !")
-
-        # Bouton de téléchargement (Apparaît si le PDF est prêt)
-        if st.session_state.get('pdf_ready'):
-            st.download_button(
-                label="⬇️ TÉLÉCHARGER LE PDF FINAL",
-                data=st.session_state['pdf_bytes'],
-                file_name="Catalogue_Paleo_Complet.pdf",
-                mime="application/pdf"
-            )
+        # --- BOUTON D'EXPORT ---
+        if st.button(f"GÉNÉRER LE ZIP ({count} IMAGES)"):
+            if count == 0:
+                st.error("Sélectionnez au moins un cartel.")
+            else:
+                final_selection = [d for d in data if d['id'] in st.session_state.selection_active]
+                
+                # Création du ZIP en mémoire
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, "w") as zf:
+                    progress_bar = st.progress(0)
+                    for i, item in enumerate(final_selection):
+                        # Génération de l'image
+                        img = generate_cartel_image(item)
+                        
+                        # Sauvegarde image en mémoire
+                        img_byte_arr = io.BytesIO()
+                        img.save(img_byte_arr, format='JPEG', quality=95)
+                        
+                        # Ajout au ZIP
+                        filename = f"Cartel_{item['titre'].replace(' ','_')}_{item['id']}.jpg"
+                        zf.writestr(filename, img_byte_arr.getvalue())
+                        
+                        progress_bar.progress((i + 1) / len(final_selection))
+                
+                st.success("✅ ZIP généré avec succès !")
+                
+                st.download_button(
+                    label="⬇️ TÉLÉCHARGER LE DOSSIER ZIP",
+                    data=zip_buffer.getvalue(),
+                    file_name="Cartels_Paleo_JPEG.zip",
+                    mime="application/zip"
+                )
 
         st.divider()
-
-        # Liste des cartels
+        # Liste avec Checkbox en temps réel
         for row in data:
             cols = st.columns([0.1, 2]) 
             with cols[0]:
-                st.write("") 
                 st.write("")
-                # Checkbox connectée DIRECTEMENT à la fonction toggle_selection
+                st.write("")
                 is_selected = row['id'] in st.session_state.selection_active
-                st.checkbox(
-                    "", 
-                    key=f"chk_{row['id']}", 
-                    value=is_selected, 
-                    on_change=toggle_selection, 
-                    args=(row['id'],)
-                )
+                st.checkbox("", key=f"chk_{row['id']}", value=is_selected, on_change=toggle_selection, args=(row['id'],))
             with cols[1]:
                 afficher_cartel_visuel(row)
                 st.divider()
