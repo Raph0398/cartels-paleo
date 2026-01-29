@@ -223,7 +223,7 @@ def generate_cartel_image(data):
     
     return img
 
-# --- PREVIEW HTML CORRIGÉE (SANS INDENTATION BUGGÉE) ---
+# --- PREVIEW HTML CORRIGÉE ---
 def afficher_cartel_visuel(data, is_draft=False):
     c1, c2 = st.columns([1, 1])
     with c1:
@@ -235,7 +235,6 @@ def afficher_cartel_visuel(data, is_draft=False):
     with c2:
         cats = " • ".join(data.get('categories', []))
         
-        # Construction SANS indentation pour éviter le code block
         link_html = ""
         if data.get('url_qr'):
             link_html = f"""<div style="margin-top:15px; text-align:right;"><a href="{data['url_qr']}" target="_blank" style="text-decoration:none; background-color:black; color:white; padding:5px 10px; border-radius:4px; font-family:sans-serif; font-size:0.8em;">🔗 LIEN</a></div>"""
@@ -244,7 +243,6 @@ def afficher_cartel_visuel(data, is_draft=False):
         if is_draft:
             draft_badge = "<div style='background:gold; color:black; padding:5px; text-align:center; font-weight:bold; margin-bottom:10px;'>⚠️ BROUILLON</div>"
 
-        # Le bloc HTML principal doit être collé à gauche dans le code (flush left)
         html_content = f"""
 <div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px;">
     {draft_badge}
@@ -368,11 +366,11 @@ with tab_biblio:
                         with e_c1:
                             e_ti = st.text_input("Titre", value=row['titre'])
                             e_an = st.text_input("Année", value=row['annee'])
-                            e_ex = st.text_input("Exhumé par", value=row.get('exhume_par', ''))
+                            e_ex = st.text_input("Exhumé par", value=row['exhume_par'])
                             e_im = st.file_uploader("Nouvelle image ?", type=['png', 'jpg'])
                         with e_c2:
-                            e_de = st.text_area("Description", value=row.get('description', ''))
-                            cur_cats = [c for c in row.get('categories', []) if c in dynamic_cats_list]
+                            e_de = st.text_area("Description", value=row['description'])
+                            cur_cats = [c for c in row['categories'] if c in dynamic_cats_list]
                             e_ca = st.multiselect("Catégories", dynamic_cats_list, default=cur_cats)
                             e_qr = st.text_input("QR Link", value=row.get('url_qr',''))
                         
@@ -463,8 +461,15 @@ with tab_drafts:
         with st.form("new_draft"):
             d_titre = st.text_input("Titre (Obligatoire)")
             d_desc = st.text_area("Notes / Description")
-            d_img = st.file_uploader("Image (Optionnel)", type=['png', 'jpg'], key="draft_img")
-            d_cats = st.multiselect("Catégories", dynamic_cats_list, key="draft_cats")
+            # Image + Options layout
+            c_img_d, c_opt_d = st.columns([1, 2])
+            with c_img_d:
+                d_img = st.file_uploader("Image (Optionnel)", type=['png', 'jpg'], key="draft_img")
+            with c_opt_d:
+                d_cats = st.multiselect("Catégories", dynamic_cats_list, key="draft_cats")
+                d_new_cat = st.text_input("Autre catégorie (Ajout)", key="draft_new_cat")
+                d_qr = st.text_input("Lien QR Code (Optionnel)", key="draft_qr")
+            
             d_submit = st.form_submit_button("Sauvegarder le brouillon")
             
             if d_submit:
@@ -472,10 +477,12 @@ with tab_drafts:
                     st.error("Titre obligatoire")
                 else:
                     d_path = save_image(d_img)
+                    final_draft_cats = d_cats + ([d_new_cat] if d_new_cat else [])
+                    
                     draft_entry = {
                         "id": "draft_" + datetime.now().strftime("%Y%m%d%H%M%S"),
                         "titre": d_titre, "annee": "2025", "description": d_desc,
-                        "exhume_par": "", "categories": d_cats, "url_qr": "", 
+                        "exhume_par": "", "categories": final_draft_cats, "url_qr": d_qr, 
                         "image_path": d_path, "date": datetime.now().strftime("%Y-%m-%d")
                     }
                     save_entry(draft_entry, DRAFTS_FILE, msg_prefix="Brouillon")
@@ -503,12 +510,13 @@ with tab_drafts:
                         ed_de = st.text_area("Desc", value=d_row.get('description', ''))
                         cur_cats = [c for c in d_row.get('categories', []) if c in dynamic_cats_list]
                         ed_ca = st.multiselect("Catégories", dynamic_cats_list, default=cur_cats)
+                        ed_qr = st.text_input("QR Link", value=d_row.get('url_qr', ''))
                         
                         if st.form_submit_button("💾 Mettre à jour"):
                             n_p = d_row.get('image_path')
                             if ed_im: n_p = save_image(ed_im)
                             up_dr = d_row.copy()
-                            up_dr.update({"titre":ed_ti, "annee":ed_an, "exhume_par":ed_ex, "description":ed_de, "categories":ed_ca, "image_path":n_p})
+                            up_dr.update({"titre":ed_ti, "annee":ed_an, "exhume_par":ed_ex, "description":ed_de, "categories":ed_ca, "url_qr":ed_qr, "image_path":n_p})
                             update_entry(up_dr, DRAFTS_FILE, msg_prefix="Modif Brouillon")
                             st.session_state[f"edit_draft_{d_row['id']}"] = False
                             st.rerun()
