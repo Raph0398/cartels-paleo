@@ -66,5 +66,20 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3401.jpeg",
         "date": "2026-01-29"
+    },
+    {
+        "id": "20260129023331",
+        "titre": "CHAUFFAGE ET VENTILATION SOLAIRE",
+        "annee": "1881",
+        "description": "Le naturaliste am\u00e9ricain Edward S. Morse imagina en 1881 un syst\u00e8me de chauffage et de ventilation aliment\u00e9 par le soleil. L\u2019invention consiste en l\u2019emploi d\u2019un bo\u00eetier fix\u00e9 sur la paroi ext\u00e9rieure d\u2019un b\u00e2timent et muni d\u2019une surface noircie en m\u00e9tal, en terre cuite, ou tout autre mat\u00e9riau appropri\u00e9, pr\u00e9sentant une surface plane ou ondul\u00e9e prot\u00e9g\u00e9e par une vitre, et agenc\u00e9 de fa\u00e7on \u00e0 permettre aux rayons du soleil de donner aussi directement que possible sur ladite surface noircie. Derri\u00e8re la surface noircie se trouve un espace d\u2019air, soit ferm\u00e9 soit communicant par des ouvertures au niveau des extr\u00e9mit\u00e9s sup\u00e9rieures et inf\u00e9rieures avec les ouvertures du logement. L\u2019action des rayons du soleil sur la surface noircie chauffe l\u2019air dans l\u2019espace \u00e0 l\u2019arri\u00e8re. En chauffant, l\u2019air monte et peut \u00eatre dirig\u00e9 dans la pi\u00e8ce, de mani\u00e8re \u00e0 la chauffer ou \u00e0 occasionner une ventilation en attirant l\u2019air \u00e0 l\u2019int\u00e9rieur de la pi\u00e8ce. Repris entre 1950-1970 par le professeur Trombe et l\u2019architecte Michel, le concept est ensuite remis au go\u00fbt du jour par une \u00e9quipe d\u2019ing\u00e9nieurs de Centrale Lille sous le nom ENAR en 2015.",
+        "exhume_par": "J\u00e9r\u00f4me Jacqmin",
+        "categories": [
+            "R\u00e9gulation thermique",
+            "Solaire",
+            "Rafra\u00eechir"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3402.jpeg",
+        "date": "2026-01-29"
     }
 ]
