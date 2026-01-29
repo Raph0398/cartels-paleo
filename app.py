@@ -189,7 +189,7 @@ def wrap_text_pixel(text, font, max_width, draw):
         lines.append(current_line)
     return lines
 
-# --- GENERATEUR IMAGE OPTIMISÉ (ANTI CHEVAUCHEMENT) ---
+# --- GENERATEUR IMAGE OPTIMISÉ ---
 def generate_cartel_image(data):
     img = Image.new('RGB', (A4_WIDTH_PX, A4_HEIGHT_PX), color='white')
     draw = ImageDraw.Draw(img)
@@ -260,28 +260,14 @@ def generate_cartel_image(data):
         current_y += font_title_size + 15
     current_y += 40
 
-    # Description (Calcul espace disponible)
+    # Description
     desc_text = data.get('description', '')
-    
-    # Position Footer (Catégories)
     cat_y = int(180 * MM_TO_PX)
     
-    # Si QR Code, on réduit la hauteur disponible pour ne pas écrire dessus
-    has_qr = bool(data.get('url_qr'))
-    qr_size_px = int(30 * MM_TO_PX)
-    
-    # Limite basse du texte
-    text_bottom_limit = cat_y - 20 # 20px de marge au dessus des catégories
-    
-    if has_qr:
-        # Si QR, on remonte la limite de texte pour être sûr de ne pas toucher le QR
-        # Le QR est aligné avec le bas de la page ou le footer ?
-        # On va placer le QR aligné sur la ligne des catégories, donc le texte doit s'arrêter avant.
-        pass # La limite cat_y suffit car le QR sera à côté des catégories
-
+    # Calcul Espace dispo
+    text_bottom_limit = cat_y - 20
     available_height = text_bottom_limit - current_y
     
-    # Auto-Fit Text
     font_desc_size = font_body_base_size
     font_body = load_font("PTSerif-Regular.ttf", font_desc_size)
     desc_lines = []
@@ -303,19 +289,16 @@ def generate_cartel_image(data):
     cats_str = " • ".join(data.get('categories', []))
     draw.text((text_x_start, cat_y), f"Catégories : {cats_str}", font=font_cats, fill="black")
     
-    if has_qr:
+    if data.get('url_qr'):
         try:
             qr = qrcode.QRCode(version=1, box_size=10, border=1)
             qr.add_data(data['url_qr'])
             qr.make(fit=True)
             qr_img = qr.make_image(fill_color="black", back_color=PINK_RGB)
+            qr_size_px = int(30 * MM_TO_PX)
             qr_img = qr_img.resize((qr_size_px, qr_size_px), Image.Resampling.NEAREST)
-            
-            # Position du QR : AlignÃ© Ã  droite, au niveau des catÃ©gories
             qr_x = A4_WIDTH_PX - margin - qr_size_px
-            # On le centre verticalement par rapport au texte des catÃ©gories ou un peu en dessous
             qr_y = cat_y - 10 
-            
             img.paste(qr_img, (qr_x, qr_y))
         except: pass
     
@@ -325,11 +308,17 @@ def generate_cartel_image(data):
 def afficher_cartel_visuel(data, is_draft=False):
     c1, c2 = st.columns([1, 1])
     with c1:
-        if data.get('image_path') and os.path.exists(data['image_path']):
-            st.image(data['image_path'], use_column_width=True)
-        else:
-            st.info("Aucune image")
+        # Sécurité pour l'image
+        try:
+            if data.get('image_path') and os.path.exists(data['image_path']):
+                st.image(data['image_path'], use_column_width=True)
+            else:
+                st.info("🖼️ Image introuvable")
+        except Exception:
+            st.error("Erreur d'affichage image")
+
         st.markdown(f"<div style='color:gray; font-size:0.8em;'>Exhumé par {data.get('exhume_par', '')}</div>", unsafe_allow_html=True)
+    
     with c2:
         cats = " • ".join(data.get('categories', []))
         
@@ -343,18 +332,9 @@ def afficher_cartel_visuel(data, is_draft=False):
 
         full_desc = data.get('description', '').replace('\n', '<br>')
 
-        # HTML construit en une seule ligne pour éviter les bugs d'indentation Streamlit
-        html_block = f"""
-<div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px; font-family: serif;">
-{draft_badge}
-<div style="text-align: right; font-weight: bold; font-size: 1.2em; font-family: sans-serif;">{data.get('annee', '')}</div>
-<div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase; font-family: sans-serif;">{data.get('titre', '')}</div>
-<div style="text-align: left;">{full_desc}</div>
-<br>
-<small style="font-family: sans-serif;">Catégories : {cats}</small>
-{link_html}
-</div>
-"""
+        # HTML COLLÉ À GAUCHE POUR ÉVITER LE BUG D'AFFICHAGE CODE
+        html_block = f"""<div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px; font-family: serif;">{draft_badge}<div style="text-align: right; font-weight: bold; font-size: 1.2em; font-family: sans-serif;">{data.get('annee', '')}</div><div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase; font-family: sans-serif;">{data.get('titre', '')}</div><div style="text-align: left;">{full_desc}</div><br><small style="font-family: sans-serif;">Catégories : {cats}</small>{link_html}</div>"""
+        
         st.markdown(html_block, unsafe_allow_html=True)
 
 # --- INIT DATA ---
@@ -373,7 +353,7 @@ drafts_data.sort(key=lambda x: x.get('date', ''), reverse=True)
 # --- INTERFACE ---
 st.title("⚡ PALEO-ÉNERGÉTIQUE")
 
-# --- CSS BOUTONS REVU (DESIGN PALEO) ---
+# --- CSS ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&family=PT+Serif:wght@400;700&display=swap');
@@ -404,8 +384,6 @@ st.markdown(f"""
         border-color: black;
     }}
     
-    /* Bouton spécifique pour les actions rouges (Supprimer) si besoin, mais le style global s'applique */
-    
     div[data-testid="column"] button {{ width: 100%; }}
     .edit-box {{ border: 2px solid #D65A5A; padding: 15px; border-radius: 5px; background-color: white; margin-top: 10px; }}
     div[role="radiogroup"] {{ flex-direction: row; width: 100%; justify-content: center; }}
@@ -430,7 +408,6 @@ if selected_page == "📚 BIBLIOTHÈQUE":
         if cat_filter:
             filtered_data = [d for d in full_data if any(cat in d['categories'] for cat in cat_filter)]
 
-        # BOUTONS SELECTION
         col_sel_all, col_desel_all, col_spacer = st.columns([1, 1, 2])
         if col_sel_all.button("✅ Tout sélectionner"):
             for d in filtered_data:
