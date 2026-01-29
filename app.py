@@ -43,6 +43,14 @@ if 'flash_msg' in st.session_state and st.session_state.flash_msg:
         st.balloons()
     st.session_state.flash_msg = None
 
+# --- GESTION DE LA NAVIGATION (MÉMOIRE D'ONGLET) ---
+# C'est ici que l'on empêche le retour à l'accueil intempestif
+if 'nav_index' not in st.session_state:
+    st.session_state.nav_index = 0 # 0 = Biblio, 1 = Nouveau, 2 = Brouillons
+
+def set_page(index):
+    st.session_state.nav_index = index
+
 # --- SAUVEGARDE GITHUB ---
 def push_to_github(file_path, content_bytes=None, message="Mise à jour automatique"):
     if "GITHUB_TOKEN" in st.secrets and "GITHUB_REPO" in st.secrets:
@@ -59,7 +67,6 @@ def push_to_github(file_path, content_bytes=None, message="Mise à jour automati
                 repo.create_file(file_path, message, content_bytes)
             return True
         except Exception as e:
-            # On ignore les erreurs silencieuses pour ne pas bloquer l'app si la clé saute
             return False
     return False
 
@@ -236,7 +243,6 @@ def afficher_cartel_visuel(data, is_draft=False):
     with c2:
         cats = " • ".join(data.get('categories', []))
         
-        # Bouton Lien propre
         link_html = ""
         if data.get('url_qr'):
             link_html = f"""<div style="margin-top:15px; text-align:right;"><a href="{data['url_qr']}" target="_blank" style="text-decoration:none; background-color:black; color:white; padding:5px 10px; border-radius:4px; font-family:sans-serif; font-size:0.8em;">🔗 LIEN</a></div>"""
@@ -245,7 +251,6 @@ def afficher_cartel_visuel(data, is_draft=False):
         if is_draft:
             draft_badge = "<div style='background:gold; color:black; padding:5px; text-align:center; font-weight:bold; margin-bottom:10px;'>⚠️ BROUILLON</div>"
 
-        # Utilisation de textwrap.dedent pour forcer le retrait des espaces parasites
         html_content = textwrap.dedent(f"""
             <div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px;">
                 {draft_badge}
@@ -285,14 +290,17 @@ st.markdown(f"""
     div.stButton > button:hover {{ background-color: #D65A5A; color: white; }}
     div[data-testid="column"] button {{ width: 100%; }}
     .edit-box {{ border: 2px solid #D65A5A; padding: 15px; border-radius: 5px; background-color: white; margin-top: 10px; }}
-    button[data-baseweb="tab"] {{ font-family: 'PT Sans Narrow', sans-serif; font-size: 1.2em; }}
+    div[role="radiogroup"] {{ flex-direction: row; width: 100%; justify-content: center; }}
 </style>
 """, unsafe_allow_html=True)
 
-tab_biblio, tab_create, tab_drafts = st.tabs(["📚 BIBLIOTHÈQUE", "➕ NOUVEAU CARTEL", "💡 IDÉES & BROUILLONS"])
+# --- NAVIGATION PERSONNALISÉE (REMPLACE LES ONGLETS) ---
+menu_options = ["📚 BIBLIOTHÈQUE", "➕ NOUVEAU CARTEL", "💡 IDÉES & BROUILLONS"]
+# On force l'index sur la valeur stockée
+selected_page = st.radio("", menu_options, index=st.session_state.nav_index, horizontal=True, label_visibility="collapsed")
 
-# === 1. BIBLIOTHÈQUE (DEFAULT) ===
-with tab_biblio:
+# === 1. BIBLIOTHÈQUE ===
+if selected_page == "📚 BIBLIOTHÈQUE":
     if 'selection_active' not in st.session_state: st.session_state.selection_active = set()
     if 'editing_id' not in st.session_state: st.session_state.editing_id = None
     if 'confirm_bulk_del' not in st.session_state: st.session_state.confirm_bulk_del = False
@@ -345,6 +353,7 @@ with tab_biblio:
                     st.session_state.selection_active = set()
                     st.session_state.confirm_bulk_del = False
                     st.session_state.flash_msg = "🗑️ Sélection supprimée."
+                    set_page(0) # Force reload sur page 0
                     st.rerun()
             if col_n.button("ANNULER", key="canc_bulk"):
                 st.session_state.confirm_bulk_del = False
@@ -369,7 +378,7 @@ with tab_biblio:
                         with e_c1:
                             e_ti = st.text_input("Titre", value=row['titre'])
                             e_an = st.text_input("Année", value=row['annee'])
-                            e_ex = st.text_input("Exhumé par", value=row.get('exhume_par', ''))
+                            e_ex = st.text_input("Exhumé par", value=row['exhume_par'])
                             e_im = st.file_uploader("Nouvelle image ?", type=['png', 'jpg'])
                         with e_c2:
                             e_de = st.text_area("Description", value=row['description'])
@@ -388,6 +397,7 @@ with tab_biblio:
                                     update_entry(up_entry, DATA_FILE)
                                     st.session_state.editing_id = None
                                     st.session_state.flash_msg = "✅ Modifié !"
+                                    set_page(0) # Reste sur biblio
                                     st.rerun()
                         with col_cancel:
                             if st.form_submit_button("Annuler"):
@@ -412,14 +422,15 @@ with tab_biblio:
                         with st.spinner('Suppression...'):
                             delete_entry(row['id'], DATA_FILE)
                         st.session_state.flash_msg = "🗑️ Supprimé."
+                        set_page(0)
                         st.rerun()
                     if st.button("NON", key=f"no_del_{row['id']}"):
                         st.session_state[f"confirm_del_{row['id']}"] = False
                         st.rerun()
             st.divider()
 
-# === 2. CRÉATION ===
-with tab_create:
+# === 2. CRÉATION (DIRECTE) ===
+elif selected_page == "➕ NOUVEAU CARTEL":
     st.subheader("Créer une nouvelle fiche officielle")
     with st.form("new_cartel"):
         col_gauche, col_droite = st.columns(2)
@@ -453,10 +464,15 @@ with tab_create:
                 }
                 save_entry(entry, DATA_FILE)
             st.session_state.flash_msg = f"✅ Cartel '{titre}' publié !"
+            set_page(0) # On renvoie vers la biblio pour voir le résultat
             st.rerun()
 
 # === 3. IDÉES & BROUILLONS ===
-with tab_drafts:
+elif selected_page == "💡 IDÉES & BROUILLONS":
+    # On marque la page active comme 2
+    if st.session_state.nav_index != 2:
+        st.session_state.nav_index = 2
+
     st.subheader("💡 Boîte à idées & Brouillons")
     
     with st.expander("➕ Ajouter une idée / un brouillon", expanded=False):
@@ -488,6 +504,7 @@ with tab_drafts:
                     }
                     save_entry(draft_entry, DRAFTS_FILE, msg_prefix="Brouillon")
                     st.session_state.flash_msg = "💡 Idée sauvegardée !"
+                    set_page(2) # On reste sur les brouillons
                     st.rerun()
     
     st.divider()
@@ -518,6 +535,7 @@ with tab_drafts:
                             up_dr.update({"titre":ed_ti, "annee":ed_an, "exhume_par":ed_ex, "description":ed_de, "categories":ed_ca, "url_qr":ed_qr, "image_path":n_p})
                             update_entry(up_dr, DRAFTS_FILE, msg_prefix="Modif Brouillon")
                             st.session_state[f"edit_draft_{d_row['id']}"] = False
+                            set_page(2) # On reste ici
                             st.rerun()
 
             with c_d_act:
@@ -526,15 +544,18 @@ with tab_drafts:
                     with st.spinner("Publication officielle..."):
                         publish_draft(d_row['id'])
                     st.session_state.flash_msg = f"🎉 '{d_row['titre']}' est maintenant publié !"
+                    set_page(0) # On va voir le résultat en biblio
                     st.rerun()
                 st.write("")
                 c_edit, c_del = st.columns(2)
                 with c_edit:
                     if st.button("✏️", key=f"btn_ed_dr_{d_row['id']}", help="Modifier"):
                         st.session_state[f"edit_draft_{d_row['id']}"] = not st.session_state.get(f"edit_draft_{d_row['id']}", False)
+                        set_page(2)
                         st.rerun()
                 with c_del:
                     if st.button("🗑️", key=f"btn_del_dr_{d_row['id']}", help="Jeter"):
                         delete_entry(d_row['id'], DRAFTS_FILE, msg_prefix="Del Brouillon")
+                        set_page(2)
                         st.rerun()
             st.divider()
