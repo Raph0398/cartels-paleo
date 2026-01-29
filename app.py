@@ -133,8 +133,8 @@ def generate_cartel_image(data):
 
     margin = int(15 * MM_TO_PX)
     
-    # 1. IMAGE
-    if data['image_path'] and os.path.exists(data['image_path']):
+    # 1. IMAGE (Si existe)
+    if data.get('image_path') and os.path.exists(data['image_path']):
         try:
             pil_img = Image.open(data['image_path'])
             box_x = margin
@@ -222,10 +222,11 @@ def generate_cartel_image(data):
 def afficher_cartel_visuel(data):
     c1, c2 = st.columns([1, 1])
     with c1:
-        if data['image_path'] and os.path.exists(data['image_path']):
+        if data.get('image_path') and os.path.exists(data['image_path']):
             st.image(data['image_path'], use_column_width=True)
         else:
-            st.warning("No Image")
+            # Affichage si pas d'image
+            st.info("Aucune image")
         st.markdown(f"<div style='color:gray; font-size:0.8em;'>Exhumé par {data['exhume_par']}</div>", unsafe_allow_html=True)
     with c2:
         cats = " • ".join(data['categories'])
@@ -276,11 +277,12 @@ with tab_create:
         col_gauche, col_droite = st.columns(2)
         
         with col_gauche:
-            uploaded_file = st.file_uploader("Image du dispositif", type=['png', 'jpg', 'jpeg'])
+            # L'image n'est plus obligatoire ici
+            uploaded_file = st.file_uploader("Image du dispositif (Optionnel)", type=['png', 'jpg', 'jpeg'])
             exhume_par = st.text_input("Exhumé par (Nom Prénom)")
         
         with col_droite:
-            titre = st.text_input("Titre du cartel")
+            titre = st.text_input("Titre du cartel (Obligatoire)")
             annee = st.text_input("Année", value="2025")
         
         description = st.text_area("Description complète", height=150)
@@ -297,8 +299,9 @@ with tab_create:
         submit_create = st.form_submit_button("ENREGISTRER LE CARTEL", type="primary")
 
     if submit_create:
-        if not uploaded_file or not titre:
-            st.error("L'image et le titre sont obligatoires.")
+        # Vérification simplifiée : Seul le titre est obligatoire
+        if not titre:
+            st.error("Le titre est obligatoire.")
         else:
             final_cats = selected_cats + ([new_cat] if new_cat else [])
             img_path = save_image(uploaded_file)
@@ -375,7 +378,7 @@ with tab_library:
             with cols[1]:
                 afficher_cartel_visuel(row)
                 
-                # Zone de modification (Expander)
+                # Zone de modification
                 with st.expander(f"✏️ Modifier '{row['titre']}'"):
                     with st.form(f"edit_{row['id']}"):
                         e_c1, e_c2 = st.columns(2)
@@ -386,12 +389,14 @@ with tab_library:
                             e_img = st.file_uploader("Remplacer l'image (Optionnel)", type=['png', 'jpg'])
                         with e_c2:
                             e_desc = st.text_area("Description", value=row['description'], height=150)
-                            e_cats = st.multiselect("Catégories", dynamic_cats_list, default=[c for c in row['categories'] if c in dynamic_cats_list])
+                            # Récupération catégories existantes
+                            current_cats = [c for c in row['categories'] if c in dynamic_cats_list]
+                            e_cats = st.multiselect("Catégories", dynamic_cats_list, default=current_cats)
                             e_qr = st.text_input("Lien QR Code", value=row.get('url_qr', ''))
                         
                         if st.form_submit_button("💾 Enregistrer les modifications"):
                             # Logique de mise à jour
-                            new_img_path = row['image_path']
+                            new_img_path = row.get('image_path') # Par défaut on garde l'ancienne
                             if e_img:
                                 new_img_path = save_image(e_img)
                             
