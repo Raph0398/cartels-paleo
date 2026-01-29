@@ -192,16 +192,12 @@ def generate_cartel_image(data):
     text_w = bbox[2] - bbox[0]
     draw.text((A4_WIDTH_PX - margin - text_w, int(25 * MM_TO_PX)), year_str, font=font_year, fill="black")
     
-    # Titre manuel wrapping pour Pillow
+    # Titre manuel wrapping
     title_str = data.get('titre', '').upper()
     current_y = int(50 * MM_TO_PX)
-    
-    # Fonction simple de wrapping
     words = title_str.split()
     lines = []
     current_line = []
-    
-    # Estimation grossière (18 chars max pour la largeur titre)
     for word in words:
         if len(" ".join(current_line + [word])) <= 18:
             current_line.append(word)
@@ -240,7 +236,6 @@ def generate_cartel_image(data):
     cat_y = int(180 * MM_TO_PX)
     draw.text((text_x_start, cat_y), f"Catégories : {cats_str}", font=font_cats, fill="black")
     
-    # QR CODE sur l'image seulement
     if data.get('url_qr'):
         try:
             qr = qrcode.QRCode(version=1, box_size=10, border=1)
@@ -256,7 +251,7 @@ def generate_cartel_image(data):
     
     return img
 
-# --- PREVIEW HTML CORRIGÉE (SANS BUG D'AFFICHAGE) ---
+# --- PREVIEW HTML ---
 def afficher_cartel_visuel(data, is_draft=False):
     c1, c2 = st.columns([1, 1])
     with c1:
@@ -276,13 +271,15 @@ def afficher_cartel_visuel(data, is_draft=False):
         if is_draft:
             draft_badge = "<div style='background:gold; color:black; padding:5px; text-align:center; font-weight:bold; margin-bottom:10px;'>⚠️ BROUILLON</div>"
 
-        # HTML SANS INDENTATION pour éviter l'interprétation code block
+        # Traitement du texte pour affichage complet et respect des sauts de ligne
+        full_description = data.get('description', '').replace('\n', '<br>')
+
         st.markdown(f"""
 <div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px;">
 {draft_badge}
 <div style="text-align: right; font-weight: bold; font-size: 1.2em;">{data.get('annee', '')}</div>
 <div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase;">{data.get('titre', '')}</div>
-<div style="font-family: serif; font-size: 1em; text-align: left;">{data.get('description', '')[:250]}...</div>
+<div style="font-family: serif; font-size: 1em; text-align: left;">{full_description}</div>
 <br>
 <small>Catégories : {cats}</small>
 {link_html}
