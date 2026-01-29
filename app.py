@@ -4,7 +4,6 @@ import json
 import os
 import zipfile
 import io
-import textwrap
 import qrcode
 import re
 from datetime import datetime
@@ -43,10 +42,9 @@ if 'flash_msg' in st.session_state and st.session_state.flash_msg:
         st.balloons()
     st.session_state.flash_msg = None
 
-# --- GESTION DE LA NAVIGATION (MÉMOIRE D'ONGLET) ---
-# C'est ici que l'on empêche le retour à l'accueil intempestif
+# --- NAVIGATION ---
 if 'nav_index' not in st.session_state:
-    st.session_state.nav_index = 0 # 0 = Biblio, 1 = Nouveau, 2 = Brouillons
+    st.session_state.nav_index = 0 
 
 def set_page(index):
     st.session_state.nav_index = index
@@ -194,10 +192,25 @@ def generate_cartel_image(data):
     text_w = bbox[2] - bbox[0]
     draw.text((A4_WIDTH_PX - margin - text_w, int(25 * MM_TO_PX)), year_str, font=font_year, fill="black")
     
+    # Titre manuel wrapping pour Pillow
     title_str = data.get('titre', '').upper()
-    title_lines = textwrap.wrap(title_str, width=18) 
     current_y = int(50 * MM_TO_PX)
-    for line in title_lines:
+    
+    # Fonction simple de wrapping
+    words = title_str.split()
+    lines = []
+    current_line = []
+    
+    # Estimation grossière (18 chars max pour la largeur titre)
+    for word in words:
+        if len(" ".join(current_line + [word])) <= 18:
+            current_line.append(word)
+        else:
+            lines.append(" ".join(current_line))
+            current_line = [word]
+    lines.append(" ".join(current_line))
+
+    for line in lines:
         bbox = draw.textbbox((0, 0), line, font=font_title)
         line_w = bbox[2] - bbox[0]
         line_h = bbox[3] - bbox[1]
@@ -205,8 +218,19 @@ def generate_cartel_image(data):
         current_y += line_h + 20
     current_y += 60
 
-    desc_lines = textwrap.wrap(data.get('description', ''), width=50)
-    for line in desc_lines:
+    # Description wrapping
+    words = data.get('description', '').split()
+    lines = []
+    current_line = []
+    for word in words:
+        if len(" ".join(current_line + [word])) <= 50:
+            current_line.append(word)
+        else:
+            lines.append(" ".join(current_line))
+            current_line = [word]
+    lines.append(" ".join(current_line))
+
+    for line in lines:
         draw.text((text_x_start, current_y), line, font=font_body, fill=(20, 20, 20))
         bbox = draw.textbbox((0, 0), line, font=font_body)
         line_h = bbox[3] - bbox[1]
@@ -216,6 +240,7 @@ def generate_cartel_image(data):
     cat_y = int(180 * MM_TO_PX)
     draw.text((text_x_start, cat_y), f"Catégories : {cats_str}", font=font_cats, fill="black")
     
+    # QR CODE sur l'image seulement
     if data.get('url_qr'):
         try:
             qr = qrcode.QRCode(version=1, box_size=10, border=1)
@@ -231,7 +256,7 @@ def generate_cartel_image(data):
     
     return img
 
-# --- PREVIEW HTML CORRIGÉE (DEDENT) ---
+# --- PREVIEW HTML CORRIGÉE (SANS BUG D'AFFICHAGE) ---
 def afficher_cartel_visuel(data, is_draft=False):
     c1, c2 = st.columns([1, 1])
     with c1:
@@ -245,24 +270,24 @@ def afficher_cartel_visuel(data, is_draft=False):
         
         link_html = ""
         if data.get('url_qr'):
-            link_html = f"""<div style="margin-top:15px; text-align:right;"><a href="{data['url_qr']}" target="_blank" style="text-decoration:none; background-color:black; color:white; padding:5px 10px; border-radius:4px; font-family:sans-serif; font-size:0.8em;">🔗 LIEN</a></div>"""
+            link_html = f'<div style="margin-top:15px; text-align:right;"><a href="{data["url_qr"]}" target="_blank" style="text-decoration:none; background-color:black; color:white; padding:5px 10px; border-radius:4px; font-family:sans-serif; font-size:0.8em;">🔗 LIEN</a></div>'
         
         draft_badge = ""
         if is_draft:
             draft_badge = "<div style='background:gold; color:black; padding:5px; text-align:center; font-weight:bold; margin-bottom:10px;'>⚠️ BROUILLON</div>"
 
-        html_content = textwrap.dedent(f"""
-            <div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px;">
-                {draft_badge}
-                <div style="text-align: right; font-weight: bold; font-size: 1.2em;">{data.get('annee', '')}</div>
-                <div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase;">{data.get('titre', '')}</div>
-                <div style="font-family: serif; font-size: 1em; text-align: left;">{data.get('description', '')[:250]}...</div>
-                <br>
-                <small>Catégories : {cats}</small>
-                {link_html}
-            </div>
-        """)
-        st.markdown(html_content, unsafe_allow_html=True)
+        # HTML SANS INDENTATION pour éviter l'interprétation code block
+        st.markdown(f"""
+<div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px;">
+{draft_badge}
+<div style="text-align: right; font-weight: bold; font-size: 1.2em;">{data.get('annee', '')}</div>
+<div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase;">{data.get('titre', '')}</div>
+<div style="font-family: serif; font-size: 1em; text-align: left;">{data.get('description', '')[:250]}...</div>
+<br>
+<small>Catégories : {cats}</small>
+{link_html}
+</div>
+""", unsafe_allow_html=True)
 
 # --- INIT DATA ---
 full_data = load_json(DATA_FILE)
@@ -294,9 +319,8 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# --- NAVIGATION PERSONNALISÉE (REMPLACE LES ONGLETS) ---
+# --- NAVIGATION ---
 menu_options = ["📚 BIBLIOTHÈQUE", "➕ NOUVEAU CARTEL", "💡 IDÉES & BROUILLONS"]
-# On force l'index sur la valeur stockée
 selected_page = st.radio("", menu_options, index=st.session_state.nav_index, horizontal=True, label_visibility="collapsed")
 
 # === 1. BIBLIOTHÈQUE ===
@@ -353,7 +377,7 @@ if selected_page == "📚 BIBLIOTHÈQUE":
                     st.session_state.selection_active = set()
                     st.session_state.confirm_bulk_del = False
                     st.session_state.flash_msg = "🗑️ Sélection supprimée."
-                    set_page(0) # Force reload sur page 0
+                    set_page(0) 
                     st.rerun()
             if col_n.button("ANNULER", key="canc_bulk"):
                 st.session_state.confirm_bulk_del = False
@@ -397,7 +421,7 @@ if selected_page == "📚 BIBLIOTHÈQUE":
                                     update_entry(up_entry, DATA_FILE)
                                     st.session_state.editing_id = None
                                     st.session_state.flash_msg = "✅ Modifié !"
-                                    set_page(0) # Reste sur biblio
+                                    set_page(0) 
                                     st.rerun()
                         with col_cancel:
                             if st.form_submit_button("Annuler"):
@@ -429,7 +453,7 @@ if selected_page == "📚 BIBLIOTHÈQUE":
                         st.rerun()
             st.divider()
 
-# === 2. CRÉATION (DIRECTE) ===
+# === 2. CRÉATION ===
 elif selected_page == "➕ NOUVEAU CARTEL":
     st.subheader("Créer une nouvelle fiche officielle")
     with st.form("new_cartel"):
@@ -464,12 +488,11 @@ elif selected_page == "➕ NOUVEAU CARTEL":
                 }
                 save_entry(entry, DATA_FILE)
             st.session_state.flash_msg = f"✅ Cartel '{titre}' publié !"
-            set_page(0) # On renvoie vers la biblio pour voir le résultat
+            set_page(0) 
             st.rerun()
 
 # === 3. IDÉES & BROUILLONS ===
 elif selected_page == "💡 IDÉES & BROUILLONS":
-    # On marque la page active comme 2
     if st.session_state.nav_index != 2:
         st.session_state.nav_index = 2
 
@@ -504,7 +527,7 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
                     }
                     save_entry(draft_entry, DRAFTS_FILE, msg_prefix="Brouillon")
                     st.session_state.flash_msg = "💡 Idée sauvegardée !"
-                    set_page(2) # On reste sur les brouillons
+                    set_page(2) 
                     st.rerun()
     
     st.divider()
@@ -535,7 +558,7 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
                             up_dr.update({"titre":ed_ti, "annee":ed_an, "exhume_par":ed_ex, "description":ed_de, "categories":ed_ca, "url_qr":ed_qr, "image_path":n_p})
                             update_entry(up_dr, DRAFTS_FILE, msg_prefix="Modif Brouillon")
                             st.session_state[f"edit_draft_{d_row['id']}"] = False
-                            set_page(2) # On reste ici
+                            set_page(2) 
                             st.rerun()
 
             with c_d_act:
@@ -544,7 +567,7 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
                     with st.spinner("Publication officielle..."):
                         publish_draft(d_row['id'])
                     st.session_state.flash_msg = f"🎉 '{d_row['titre']}' est maintenant publié !"
-                    set_page(0) # On va voir le résultat en biblio
+                    set_page(0) 
                     st.rerun()
                 st.write("")
                 c_edit, c_del = st.columns(2)
