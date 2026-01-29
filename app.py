@@ -6,6 +6,7 @@ import zipfile
 import io
 import textwrap
 import qrcode
+import re
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 
@@ -92,6 +93,15 @@ def toggle_selection(cartel_id):
         st.session_state.selection_active.remove(cartel_id)
     else:
         st.session_state.selection_active.add(cartel_id)
+
+def get_year_for_sort(entry):
+    """Extrait une valeur numérique de l'année pour le tri chronologique"""
+    annee_text = str(entry.get('annee', '9999'))
+    # On cherche le premier nombre dans le texte (ex: "1200" dans "vers 1200")
+    match = re.search(r'-?\d+', annee_text)
+    if match:
+        return int(match.group())
+    return 9999 # Si pas de nombre, on met à la fin
 
 # --- FONCTION DE DESSIN (JPEG GENERATOR) ---
 def generate_cartel_image(data):
@@ -180,32 +190,21 @@ def generate_cartel_image(data):
     cat_y = int(180 * MM_TO_PX)
     draw.text((text_x_start, cat_y), f"Catégories : {cats_str}", font=font_cats, fill="black")
     
-    # 4. QR CODE (Optionnel)
+    # 4. QR CODE
     if data.get('url_qr'):
         try:
-            # Génération du QR Code
-            qr = qrcode.QRCode(
-                version=1,
-                error_correction=qrcode.constants.ERROR_CORRECT_L,
-                box_size=10,
-                border=1, # Bordure fine
-            )
+            qr = qrcode.QRCode(version=1, box_size=10, border=1)
             qr.add_data(data['url_qr'])
             qr.make(fit=True)
-            
-            # Création image QR avec fond rose pour se fondre
             qr_img = qr.make_image(fill_color="black", back_color=PINK_RGB)
             
-            # Redimensionnement (ex: 30mm de côté)
             qr_size_px = int(30 * MM_TO_PX)
             qr_img = qr_img.resize((qr_size_px, qr_size_px), Image.Resampling.NEAREST)
             
-            # Positionnement : Bas Droite
             qr_x = A4_WIDTH_PX - margin - qr_size_px
             qr_y = A4_HEIGHT_PX - margin - qr_size_px
             
             img.paste(qr_img, (qr_x, qr_y))
-            
         except Exception as e:
             print(f"Erreur QR: {e}")
     
@@ -223,7 +222,6 @@ def afficher_cartel_visuel(data):
     with c2:
         cats = " • ".join(data['categories'])
         
-        # Simulation visuelle du QR code en CSS/HTML
         qr_html = ""
         if data.get('url_qr'):
             qr_html = f"""
@@ -246,12 +244,31 @@ def afficher_cartel_visuel(data):
         </div>
         """, unsafe_allow_html=True)
 
+# --- PRÉPARATION DES DONNÉES GLOBALES ---
+# On charge les données au début pour calculer les catégories dynamiques
+full_data = load_data()
+
+# 1. Calcul des catégories dynamiques
+# On part de la liste de base
+categories_pool = set(["Énergie", "H2O", "Mobilité", "Alimentation", "Solaire", "Eolien"])
+# On ajoute tout ce qui a été trouvé dans la base de données
+for entry in full_data:
+    for c in entry.get('categories', []):
+        categories_pool.add(c)
+# On convertit en liste triée alphabétiquement
+dynamic_cats_list = sorted(list(categories_pool))
+
+# 2. Tri Chronologique des données
+# On utilise la fonction get_year_for_sort pour trier par année croissante
+full_data.sort(key=get_year_for_sort)
+
+
 # --- INTERFACE ---
 st.title("⚡ PALEO-ÉNERGÉTIQUE")
 
 tab_create, tab_library = st.tabs(["NOUVEAU CARTEL", "BIBLIOTHÈQUE & EXPORT"])
 
-# === ONGLET 1 : CRÉATION (SANS PRÉVISUALISATION) ===
+# === ONGLET 1 : CRÉATION ===
 with tab_create:
     st.subheader("Créer une nouvelle fiche")
     with st.form("new_cartel"):
@@ -270,9 +287,9 @@ with tab_create:
         st.markdown("**Options & Catégories**")
         c_cat, c_qr = st.columns(2)
         with c_cat:
-            cats_base = ["Énergie", "H2O", "Mobilité", "Alimentation", "Solaire", "Eolien"]
-            selected_cats = st.multiselect("Catégories", cats_base)
-            new_cat = st.text_input("Autre catégorie (Optionnel)")
+            # On utilise la liste DYNAMIQUE ici
+            selected_cats = st.multiselect("Catégories", dynamic_cats_list)
+            new_cat = st.text_input("Autre catégorie (Sera ajoutée à la liste)")
         
         with c_qr:
             url_qr = st.text_input("Lien pour le QR Code (Optionnel)", help="Si rempli, un QR Code apparaîtra en bas à droite.")
@@ -292,49 +309,45 @@ with tab_create:
                 "description": description,
                 "exhume_par": exhume_par, 
                 "categories": final_cats,
-                "url_qr": url_qr, # Nouveau champ
+                "url_qr": url_qr,
                 "image_path": img_path, 
                 "date": datetime.now().strftime("%Y-%m-%d")
             }
             save_data(entry)
             st.success("✅ Cartel enregistré ! Allez dans l'onglet Bibliothèque pour le voir.")
+            # Astuce pour recharger la page et mettre à jour la liste des catégories immédiatement
+            st.rerun()
 
 # === ONGLET 2 : BIBLIOTHÈQUE ===
 with tab_library:
     if 'selection_active' not in st.session_state:
         st.session_state.selection_active = set()
 
-    data = load_data()
-    data = data[::-1]
-    
-    if not data:
+    # On utilise full_data qui est déjà trié chronologiquement
+    if not full_data:
         st.info("Aucune archive.")
     else:
         # --- FILTRES ---
-        all_cats_recorded = set()
-        for d in data:
-            for c in d['categories']:
-                all_cats_recorded.add(c)
-        
+        # On peut aussi filtrer les catégories pour l'affichage
         st.markdown("### Filtres")
-        cat_filter = st.multiselect("Filtrer par catégorie", sorted(list(all_cats_recorded)))
+        cat_filter = st.multiselect("Filtrer par catégorie", dynamic_cats_list)
         
-        # Application du filtre
-        filtered_data = data
+        # Application du filtre visuel
+        filtered_data = full_data
         if cat_filter:
-            filtered_data = [d for d in data if any(cat in d['categories'] for cat in cat_filter)]
+            filtered_data = [d for d in full_data if any(cat in d['categories'] for cat in cat_filter)]
 
         count_total = len(filtered_data)
         count_sel = len(st.session_state.selection_active)
         
-        st.subheader(f"🗃️ Liste ({count_total} affichés) - {count_sel} sélectionné(s)")
+        st.subheader(f"🗃️ Liste ({count_total} affichés, triés par année) - {count_sel} sélectionné(s)")
         
         # --- BOUTON D'EXPORT ---
         if st.button(f"GÉNÉRER LE ZIP ({count_sel} IMAGES)"):
             if count_sel == 0:
                 st.error("Sélectionnez au moins un cartel.")
             else:
-                final_selection = [d for d in data if d['id'] in st.session_state.selection_active]
+                final_selection = [d for d in full_data if d['id'] in st.session_state.selection_active]
                 
                 zip_buffer = io.BytesIO()
                 with zipfile.ZipFile(zip_buffer, "w") as zf:
@@ -374,7 +387,7 @@ with tab_library:
             with cols[2]:
                 st.write("")
                 st.write("")
-                # Bouton de suppression avec confirmation
+                # Bouton de suppression
                 if st.button("🗑️", key=f"del_{row['id']}", help="Supprimer ce cartel"):
                     st.session_state[f"confirm_del_{row['id']}"] = True
                 
