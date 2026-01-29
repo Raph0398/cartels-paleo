@@ -1,1 +1,15 @@
-[]
+[
+    {
+        "id": "draft_20260129135730",
+        "titre": "IntegralE de Aura Aero",
+        "annee": "2025",
+        "description": "-structure bois/Carbone\n- Biplace\n- fin de vie de la batterie : recycl\u00e9 ou r\u00e9utilis\u00e9\n- 1h30 d'autonomie\n- charge en 30 minutes\n- niveau sonore faible\n\nExhum\u00e9 par Axelle Rigoulot\nAnn\u00e9e 2027",
+        "exhume_par": "",
+        "categories": [
+            "Mobilit\u00e9"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_20260129_145259850.jpg",
+        "date": "2026-01-29"
+    }
+]
