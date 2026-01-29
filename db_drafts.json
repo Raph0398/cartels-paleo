@@ -1,1 +1,13 @@
-[]
+[
+    {
+        "id": "draft_20260129015935",
+        "titre": "Test",
+        "annee": "2025",
+        "description": "",
+        "exhume_par": "",
+        "categories": [],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3373.jpeg",
+        "date": "2026-01-29"
+    }
+]
