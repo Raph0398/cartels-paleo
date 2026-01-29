@@ -19,6 +19,7 @@ DRAFTS_FILE = "db_drafts.json"
 IMG_FOLDER = "images_archive"
 PINK_RGB = (252, 237, 236)
 PINK_HEX = "#FCEDEC"
+RED_ACCENT = "#D65A5A"
 
 # Configuration DPI pour impression (A4 à 300 DPI)
 DPI = 300
@@ -168,10 +169,8 @@ def get_year_for_sort(entry):
 
 # --- OUTILS DE TEXTE PIL ---
 def wrap_text_pixel(text, font, max_width, draw):
-    """Découpe le texte en lignes selon la largeur en pixels"""
     lines = []
     paragraphs = text.split('\n')
-    
     for paragraph in paragraphs:
         if not paragraph:
             lines.append("")
@@ -354,22 +353,111 @@ drafts_data.sort(key=lambda x: x.get('date', ''), reverse=True)
 # --- INTERFACE ---
 st.title("⚡ PALEO-ÉNERGÉTIQUE")
 
+# --- NOUVEAU STYLE CSS ---
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&family=PT+Serif:wght@400;700&display=swap');
+    
+    /* Global Styles */
     .stApp {{ background-color: #FAFAFA; font-family: 'PT Serif', serif; color: black; }}
     h1, h2, h3 {{ font-family: 'PT Sans Narrow', sans-serif !important; text-transform: uppercase; }}
     .stTextInput input, .stTextArea textarea, .stMultiSelect {{ background-color: {PINK_HEX} !important; color: black !important; border: 1px solid #E0B0B0; }}
-    div.stButton > button {{ background-color: black; color: white; font-family: 'PT Sans Narrow', sans-serif; text-transform: uppercase; border-radius: 4px; padding: 5px 15px; border: none; }}
-    div.stButton > button:hover {{ background-color: #D65A5A; color: white; }}
+    .edit-box {{ border: 2px solid {RED_ACCENT}; padding: 15px; border-radius: 5px; background-color: white; margin-top: 10px; }}
+
+    /* --- STYLE DES BOUTONS --- */
+    
+    /* 1. Boutons par défaut (Secondaire/Selection) -> MINIMALISTE ET DISCRET */
+    div.stButton > button {{
+        background-color: transparent !important;
+        color: #666 !important;
+        font-family: 'PT Sans Narrow', sans-serif;
+        text-transform: uppercase;
+        border: 1px solid #ccc !important;
+        border-radius: 4px;
+        padding: 2px 10px !important;
+        font-size: 0.85em !important;
+        height: auto !important;
+        min-height: 0px !important;
+        transition: all 0.2s;
+    }}
+    div.stButton > button:hover {{
+        border-color: {RED_ACCENT} !important;
+        color: {RED_ACCENT} !important;
+        background-color: white !important;
+    }}
+
+    /* 2. Boutons d'action principale (Primary) -> NOIR ET FORT */
+    div.stButton > button[kind="primary"] {{
+        background-color: black !important;
+        color: white !important;
+        border: none !important;
+        padding: 8px 20px !important;
+        font-size: 1em !important;
+        font-weight: bold;
+    }}
+    div.stButton > button[kind="primary"]:hover {{
+        background-color: {RED_ACCENT} !important;
+        color: white !important;
+    }}
+
+    /* --- MENU DE NAVIGATION (Radio transformé en Tabs) --- */
+    div[role="radiogroup"] {{
+        flex-direction: row;
+        width: 100%;
+        justify-content: center;
+        background-color: white;
+        padding: 5px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        gap: 10px;
+    }}
+    div[role="radiogroup"] label {{
+        background-color: transparent;
+        border: 1px solid transparent;
+        padding: 8px 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: 0.3s;
+        flex-grow: 1; /* S'étire pour remplir */
+        justify-content: center;
+        text-align: center;
+    }}
+    /* Cache le rond du radio button */
+    div[role="radiogroup"] label > div:first-child {{
+        display: none;
+    }}
+    /* Texte de l'onglet */
+    div[role="radiogroup"] label p {{
+        font-family: 'PT Sans Narrow', sans-serif;
+        text-transform: uppercase;
+        font-size: 1.1em;
+        margin: 0;
+        font-weight: bold;
+        color: #888;
+    }}
+    /* État survol */
+    div[role="radiogroup"] label:hover {{
+        color: {RED_ACCENT};
+        background-color: #FAFAFA;
+    }}
+    /* État sélectionné (Hack: Streamlit met data-checked sur le div parent du texte) */
+    div[role="radiogroup"] label[data-checked="true"] {{
+        background-color: {PINK_HEX};
+        border: 1px solid {RED_ACCENT};
+    }}
+    div[role="radiogroup"] label[data-checked="true"] p {{
+        color: {RED_ACCENT} !important;
+    }}
+
+    /* Ajustement largeur boutons colonnes */
     div[data-testid="column"] button {{ width: 100%; }}
-    .edit-box {{ border: 2px solid #D65A5A; padding: 15px; border-radius: 5px; background-color: white; margin-top: 10px; }}
-    div[role="radiogroup"] {{ flex-direction: row; width: 100%; justify-content: center; }}
 </style>
 """, unsafe_allow_html=True)
 
 menu_options = ["📚 BIBLIOTHÈQUE", "➕ NOUVEAU CARTEL", "💡 IDÉES & BROUILLONS"]
 selected_page = st.radio("", menu_options, index=st.session_state.nav_index, horizontal=True, label_visibility="collapsed")
+
+st.write("") # Spacer
 
 # === 1. BIBLIOTHÈQUE ===
 if selected_page == "📚 BIBLIOTHÈQUE":
@@ -386,13 +474,14 @@ if selected_page == "📚 BIBLIOTHÈQUE":
         if cat_filter:
             filtered_data = [d for d in full_data if any(cat in d['categories'] for cat in cat_filter)]
 
-        # --- NOUVEAUX BOUTONS DE SÉLECTION ---
-        col_sel_all, col_desel_all, col_spacer = st.columns([1, 1, 2])
-        if col_sel_all.button("✅ Tout sélectionner (visibles)"):
+        # --- SELECTION MINIMALISTE ---
+        # Note: Grâce au CSS ci-dessus, ces boutons "standard" seront fins et discrets.
+        col_sel_all, col_desel_all, col_spacer = st.columns([1, 1, 3])
+        if col_sel_all.button("☑ TOUT SÉLECTIONNER"):
             for d in filtered_data:
                 st.session_state.selection_active.add(d['id'])
             st.rerun()
-        if col_desel_all.button("❌ Tout désélectionner"):
+        if col_desel_all.button("☒ TOUT DÉSÉLECTIONNER"):
             for d in filtered_data:
                 if d['id'] in st.session_state.selection_active:
                     st.session_state.selection_active.remove(d['id'])
@@ -401,12 +490,14 @@ if selected_page == "📚 BIBLIOTHÈQUE":
 
         count_sel = len(st.session_state.selection_active)
         
+        st.write("")
         col_inf, col_exp, col_del_bulk = st.columns([2, 1, 1])
         with col_inf:
             st.caption(f"{len(filtered_data)} publiés | {count_sel} sélectionnés")
         
         with col_exp:
-            if st.button(f"GÉNÉRER LE ZIP ({count_sel})", use_container_width=True):
+            # Bouton standard (discret) pour le Zip
+            if st.button(f"📥 GÉNÉRER ZIP ({count_sel})", use_container_width=True):
                 if count_sel == 0:
                     st.error("Sélection vide.")
                 else:
@@ -421,11 +512,12 @@ if selected_page == "📚 BIBLIOTHÈQUE":
                             fname = f"Cartel_{item['titre'].replace(' ','_')}_{item['id']}.jpg"
                             zf.writestr(fname, buf.getvalue())
                             prog.progress((i+1)/len(final_selection))
-                    st.download_button("⬇️ TÉLÉCHARGER ZIP", zip_buffer.getvalue(), "Cartels.zip", "application/zip")
+                    st.download_button("⬇️ TÉLÉCHARGER", zip_buffer.getvalue(), "Cartels.zip", "application/zip", type="primary")
 
         with col_del_bulk:
             if count_sel > 0:
-                if st.button("🗑️ SUPPRIMER SÉLECTION", type="primary", use_container_width=True):
+                # Bouton Primary pour actions dangereuses
+                if st.button("🗑️ SUPPRIMER SÉL.", type="primary", use_container_width=True):
                     st.session_state.confirm_bulk_del = True
         
         if st.session_state.confirm_bulk_del:
@@ -466,7 +558,6 @@ if selected_page == "📚 BIBLIOTHÈQUE":
                             e_ex = st.text_input("Exhumé par", value=row['exhume_par'])
                             e_im = st.file_uploader("Nouvelle image ?", type=['png', 'jpg'])
                         with e_c2:
-                            # MODIFICATION : Limite caractères + Compteur
                             e_de = st.text_area("Description (Max 1500 caractères)", value=row['description'], max_chars=1500)
                             cur_cats = [c for c in row['categories'] if c in dynamic_cats_list]
                             e_ca = st.multiselect("Catégories", dynamic_cats_list, default=cur_cats)
@@ -474,7 +565,7 @@ if selected_page == "📚 BIBLIOTHÈQUE":
                         
                         col_save, col_cancel = st.columns([1, 1])
                         with col_save:
-                            if st.form_submit_button("💾 Sauvegarder"):
+                            if st.form_submit_button("💾 SAUVEGARDER", type="primary"):
                                 with st.spinner('Mise à jour...'):
                                     n_path = row.get('image_path')
                                     if e_im: n_path = save_image(e_im)
@@ -504,7 +595,7 @@ if selected_page == "📚 BIBLIOTHÈQUE":
                 
                 if st.session_state.get(f"confirm_del_{row['id']}"):
                     st.markdown("<small style='color:red;'>Supprimer ?</small>", unsafe_allow_html=True)
-                    if st.button("OUI", key=f"yes_del_{row['id']}"):
+                    if st.button("OUI", key=f"yes_del_{row['id']}", type="primary"):
                         with st.spinner('Suppression...'):
                             delete_entry(row['id'], DATA_FILE)
                         st.session_state.flash_msg = "🗑️ Supprimé."
@@ -527,7 +618,6 @@ elif selected_page == "➕ NOUVEAU CARTEL":
             titre = st.text_input("Titre (Obligatoire)")
             annee = st.text_input("Année", value="2025")
         
-        # MODIFICATION : Limite caractères + Compteur
         description = st.text_area("Description (Max 1500 caractères)", height=150, max_chars=1500)
         
         c_cat, c_qr = st.columns(2)
@@ -536,6 +626,8 @@ elif selected_page == "➕ NOUVEAU CARTEL":
             new_cat = st.text_input("Autre catégorie (Ajout)")
         with c_qr:
             url_qr = st.text_input("Lien QR Code (Optionnel)")
+        
+        # Bouton Primary
         submit_create = st.form_submit_button("ENREGISTRER LE CARTEL", type="primary")
 
     if submit_create:
@@ -566,7 +658,6 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
     with st.expander("➕ Ajouter une idée / un brouillon", expanded=False):
         with st.form("new_draft"):
             d_titre = st.text_input("Titre (Obligatoire)")
-            # MODIFICATION : Limite caractères + Compteur
             d_desc = st.text_area("Notes / Description (Max 1500 caractères)", max_chars=1500)
             
             c_img_d, c_opt_d = st.columns([1, 2])
@@ -613,14 +704,13 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
                         ed_an = st.text_input("Année", value=d_row.get('annee', ''))
                         ed_ex = st.text_input("Exhumé par", value=d_row.get('exhume_par', ''))
                         ed_im = st.file_uploader("Image", type=['png', 'jpg'])
-                        # MODIFICATION : Limite caractères + Compteur
                         ed_de = st.text_area("Desc (Max 1500 caractères)", value=d_row.get('description', ''), max_chars=1500)
                         
                         cur_cats = [c for c in d_row.get('categories', []) if c in dynamic_cats_list]
                         ed_ca = st.multiselect("Catégories", dynamic_cats_list, default=cur_cats)
                         ed_qr = st.text_input("QR Link", value=d_row.get('url_qr', ''))
                         
-                        if st.form_submit_button("💾 Mettre à jour"):
+                        if st.form_submit_button("💾 Mettre à jour", type="primary"):
                             n_p = d_row.get('image_path')
                             if ed_im: n_p = save_image(ed_im)
                             up_dr = d_row.copy()
@@ -632,6 +722,7 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
 
             with c_d_act:
                 st.write("")
+                # Bouton Primary
                 if st.button("🚀 PUBLIER EN BIBLIOTHÈQUE", key=f"pub_{d_row['id']}", type="primary", use_container_width=True):
                     with st.spinner("Publication officielle..."):
                         publish_draft(d_row['id'])
