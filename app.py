@@ -72,7 +72,7 @@ def save_image(uploaded_file):
         return file_path
     return None
 
-# --- AFFICHAGE VISUEL (HTML/CSS pour l'app) ---
+# --- AFFICHAGE VISUEL HTML ---
 def afficher_cartel_visuel(data):
     """Affiche le cartel tel qu'il apparaîtra, pour vérification visuelle"""
     c1, c2 = st.columns([1, 1])
@@ -100,21 +100,19 @@ def afficher_cartel_visuel(data):
         </div>
         """, unsafe_allow_html=True)
 
-# --- MOTEUR PDF ROBUSTE ---
+# --- GÉNÉRATEUR PDF ROBUSTE ---
 class PDF(FPDF):
     def __init__(self):
-        # Format EXACT A4 Paysage (297mm x 210mm)
+        # A4 Paysage : 297mm x 210mm
         super().__init__(orientation='L', unit='mm', format='A4')
-        self.set_auto_page_break(False) # On gère la page nous-mêmes pour éviter les sauts inattendus
-        self.set_margins(0, 0, 0) # Pas de marges automatiques
+        self.set_auto_page_break(False)
+        self.set_margins(0, 0, 0)
         
-        # CHARGEMENT POLICES AVEC FALLBACK DE SÉCURITÉ
-        # Si le fichier .ttf n'est pas trouvé, on utilise Helvetica (qui marche toujours)
-        self.font_header = 'Helvetica'
-        self.font_body = 'Times'
+        # Gestion des polices avec sécurité
+        self.font_header = 'Helvetica' # Valeur par défaut
+        self.font_body = 'Times'       # Valeur par défaut
         
         try:
-            # On tente de charger vos fichiers (doivent être à la racine)
             if os.path.exists('PTSansNarrow-Bold.ttf'):
                 self.add_font('PTSansNarrow', 'B', 'PTSansNarrow-Bold.ttf')
                 self.add_font('PTSansNarrow', '', 'PTSansNarrow-Regular.ttf')
@@ -124,28 +122,25 @@ class PDF(FPDF):
                 self.add_font('PTSerif', '', 'PTSerif-Regular.ttf')
                 self.font_body = 'PTSerif'
         except Exception as e:
-            print(f"Attention: Polices non trouvées, utilisation standard. Erreur: {e}")
+            print(f"Info: Polices non chargées ({e}), utilisation défaut.")
 
     def add_cartel_page(self, data):
         self.add_page()
         
-        # Dimensions A4 exactes
+        # Dimensions strictes
         W = 297
         H = 210
         MID = W / 2
         
-        # 1. FOND ROSE (Moitié Droite EXACTE)
+        # 1. FOND ROSE (Droite)
         self.set_fill_color(PINK_RGB[0], PINK_RGB[1], PINK_RGB[2])
         self.rect(x=MID, y=0, w=MID, h=H, style='F')
         
-        # 2. IMAGE (Moitié Gauche)
-        # On définit une zone de 15mm de marge
+        # 2. IMAGE (Gauche)
         if data['image_path'] and os.path.exists(data['image_path']):
             try:
-                # On place l'image à x=15, y=30, largeur max = (MID - 30)
                 self.image(data['image_path'], x=15, y=30, w=MID-30)
-            except:
-                pass # Évite de planter si l'image est corrompue
+            except: pass
 
         # 3. CRÉDIT (Bas Gauche)
         self.set_xy(15, 185)
@@ -165,7 +160,6 @@ class PDF(FPDF):
         self.cell(W_TEXT, 10, str(data['annee']), align='R')
         
         # 5. TITRE
-        # On repositionne le curseur juste après l'année
         self.set_xy(X_TEXT, self.get_y() + 10)
         self.set_font(self.font_header, 'B', 24)
         self.multi_cell(W_TEXT, 10, data['titre'].upper(), align='R')
@@ -176,7 +170,7 @@ class PDF(FPDF):
         self.set_text_color(20, 20, 20)
         self.multi_cell(W_TEXT, 6, data['description'], align='L')
         
-        # 7. FOOTER (Catégories)
+        # 7. FOOTER
         self.set_xy(X_TEXT, 180)
         self.set_font(self.font_header, '', 9)
         cats_str = " • ".join(data['categories'])
@@ -242,8 +236,12 @@ with tab_library:
         st.info("Aucune archive.")
     else:
         st.subheader(f"🗃️ Archives ({len(data)} fiches)")
-        st.caption("Cochez pour générer le PDF.")
+        st.caption("Cochez les cases pour générer un PDF multipages.")
         
+        # Liste pour collecter les IDs sélectionnés
+        # On initialise cette liste avant le formulaire
+        selected_ids_in_form = []
+
         with st.form("selection_form"):
             for index, row in enumerate(data):
                 cols = st.columns([0.1, 2]) 
@@ -251,30 +249,42 @@ with tab_library:
                     st.write("") 
                     st.write("")
                     st.write("")
-                    st.checkbox("", key=f"chk_{row['id']}")
+                    # On stocke le résultat du checkbox directement
+                    is_checked = st.checkbox("", key=f"chk_{row['id']}")
+                    if is_checked:
+                        selected_ids_in_form.append(row['id'])
+                
                 with cols[1]:
                     afficher_cartel_visuel(row)
                     st.divider()
             
             submit_selection = st.form_submit_button("GÉNÉRER LE PDF AVEC LA SÉLECTION")
 
+        # LOGIQUE HORS FORMULAIRE
         if submit_selection:
-            final_selection = [d for d in data if st.session_state.get(f"chk_{d['id']}")]
-            
-            if not final_selection:
-                st.warning("Cochez au moins un cartel.")
+            if not selected_ids_in_form:
+                st.warning("Veuillez cocher au moins un cartel.")
             else:
+                # On filtre les données
+                final_selection = [d for d in data if d['id'] in selected_ids_in_form]
+                
+                # Génération PDF
                 pdf = PDF()
                 for item in final_selection:
                     pdf.add_cartel_page(item)
                 
                 # Conversion sécurisée en bytes
-                pdf_bytes = bytes(pdf.output())
+                try:
+                    pdf_bytes = bytes(pdf.output())
+                except TypeError:
+                    # Fallback si ancienne version de fpdf
+                    pdf_bytes = pdf.output(dest='S').encode('latin-1')
+
+                st.success(f"PDF généré avec {len(final_selection)} page(s) !")
                 
-                st.success(f"{len(final_selection)} cartels prêts !")
                 st.download_button(
                     label=f"⬇️ TÉLÉCHARGER LE PDF ({len(final_selection)} PAGES)",
                     data=pdf_bytes,
-                    file_name=f"Catalogue_Paleo.pdf",
+                    file_name=f"Catalogue_Paleo_Export.pdf",
                     mime="application/pdf"
                 )
