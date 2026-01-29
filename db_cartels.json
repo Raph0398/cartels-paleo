@@ -11,19 +11,5 @@
         "image_path": "images_archive/IMG_3391.jpeg",
         "date_ajout": "2026-01-28",
         "url_qr": ""
-    },
-    {
-        "id": "20260129010957",
-        "titre": "Testes",
-        "annee": "1980",
-        "description": "blablbalblablablblab",
-        "exhume_par": "Raph le testeur",
-        "categories": [
-            "Eolien",
-            "Mobilit\u00e9"
-        ],
-        "url_qr": "",
-        "image_path": "images_archive/IMG_3245.jpeg",
-        "date": "2026-01-29"
     }
 ]
