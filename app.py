@@ -59,6 +59,7 @@ def push_to_github(file_path, content_bytes=None, message="Mise à jour automati
                 repo.create_file(file_path, message, content_bytes)
             return True
         except Exception as e:
+            # On ignore les erreurs silencieuses pour ne pas bloquer l'app si la clé saute
             return False
     return False
 
@@ -223,7 +224,7 @@ def generate_cartel_image(data):
     
     return img
 
-# --- PREVIEW HTML CORRIGÉE ---
+# --- PREVIEW HTML CORRIGÉE (DEDENT) ---
 def afficher_cartel_visuel(data, is_draft=False):
     c1, c2 = st.columns([1, 1])
     with c1:
@@ -235,6 +236,7 @@ def afficher_cartel_visuel(data, is_draft=False):
     with c2:
         cats = " • ".join(data.get('categories', []))
         
+        # Bouton Lien propre
         link_html = ""
         if data.get('url_qr'):
             link_html = f"""<div style="margin-top:15px; text-align:right;"><a href="{data['url_qr']}" target="_blank" style="text-decoration:none; background-color:black; color:white; padding:5px 10px; border-radius:4px; font-family:sans-serif; font-size:0.8em;">🔗 LIEN</a></div>"""
@@ -243,17 +245,18 @@ def afficher_cartel_visuel(data, is_draft=False):
         if is_draft:
             draft_badge = "<div style='background:gold; color:black; padding:5px; text-align:center; font-weight:bold; margin-bottom:10px;'>⚠️ BROUILLON</div>"
 
-        html_content = f"""
-<div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px;">
-    {draft_badge}
-    <div style="text-align: right; font-weight: bold; font-size: 1.2em;">{data.get('annee', '')}</div>
-    <div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase;">{data.get('titre', '')}</div>
-    <div style="font-family: serif; font-size: 1em; text-align: left;">{data.get('description', '')[:250]}...</div>
-    <br>
-    <small>Catégories : {cats}</small>
-    {link_html}
-</div>
-"""
+        # Utilisation de textwrap.dedent pour forcer le retrait des espaces parasites
+        html_content = textwrap.dedent(f"""
+            <div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px;">
+                {draft_badge}
+                <div style="text-align: right; font-weight: bold; font-size: 1.2em;">{data.get('annee', '')}</div>
+                <div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase;">{data.get('titre', '')}</div>
+                <div style="font-family: serif; font-size: 1em; text-align: left;">{data.get('description', '')[:250]}...</div>
+                <br>
+                <small>Catégories : {cats}</small>
+                {link_html}
+            </div>
+        """)
         st.markdown(html_content, unsafe_allow_html=True)
 
 # --- INIT DATA ---
@@ -366,7 +369,7 @@ with tab_biblio:
                         with e_c1:
                             e_ti = st.text_input("Titre", value=row['titre'])
                             e_an = st.text_input("Année", value=row['annee'])
-                            e_ex = st.text_input("Exhumé par", value=row['exhume_par'])
+                            e_ex = st.text_input("Exhumé par", value=row.get('exhume_par', ''))
                             e_im = st.file_uploader("Nouvelle image ?", type=['png', 'jpg'])
                         with e_c2:
                             e_de = st.text_area("Description", value=row['description'])
@@ -415,7 +418,7 @@ with tab_biblio:
                         st.rerun()
             st.divider()
 
-# === 2. CRÉATION (DIRECTE) ===
+# === 2. CRÉATION ===
 with tab_create:
     st.subheader("Créer une nouvelle fiche officielle")
     with st.form("new_cartel"):
@@ -455,13 +458,11 @@ with tab_create:
 # === 3. IDÉES & BROUILLONS ===
 with tab_drafts:
     st.subheader("💡 Boîte à idées & Brouillons")
-    st.caption("Ajoutez ici des idées en vrac. Vous pourrez les modifier et les publier plus tard.")
     
     with st.expander("➕ Ajouter une idée / un brouillon", expanded=False):
         with st.form("new_draft"):
             d_titre = st.text_input("Titre (Obligatoire)")
             d_desc = st.text_area("Notes / Description")
-            # Image + Options layout
             c_img_d, c_opt_d = st.columns([1, 2])
             with c_img_d:
                 d_img = st.file_uploader("Image (Optionnel)", type=['png', 'jpg'], key="draft_img")
@@ -496,10 +497,8 @@ with tab_drafts:
     else:
         for d_row in drafts_data:
             c_d_vis, c_d_act = st.columns([2, 1])
-            
             with c_d_vis:
                 afficher_cartel_visuel(d_row, is_draft=True)
-                
                 if st.session_state.get(f"edit_draft_{d_row['id']}"):
                     st.markdown(f"<div class='edit-box'>Édition Brouillon</div>", unsafe_allow_html=True)
                     with st.form(f"form_edit_draft_{d_row['id']}"):
@@ -528,7 +527,6 @@ with tab_drafts:
                         publish_draft(d_row['id'])
                     st.session_state.flash_msg = f"🎉 '{d_row['titre']}' est maintenant publié !"
                     st.rerun()
-                
                 st.write("")
                 c_edit, c_del = st.columns(2)
                 with c_edit:
@@ -539,5 +537,4 @@ with tab_drafts:
                     if st.button("🗑️", key=f"btn_del_dr_{d_row['id']}", help="Jeter"):
                         delete_entry(d_row['id'], DRAFTS_FILE, msg_prefix="Del Brouillon")
                         st.rerun()
-            
             st.divider()
