@@ -25,5 +25,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3398.jpeg",
         "date": "2026-01-29"
+    },
+    {
+        "id": "20260129021840",
+        "titre": "SYST\u00c8ME D\u2019IRRIGATION PAR JARRE : OLLA OU OYA",
+        "annee": "20",
+        "description": "Technique ancestrale, l\u2019origine de ce syst\u00e8me d\u2019irrigation remonte \u00e0 plusieurs milliers d\u2019ann\u00e9es. L'agronome Fan Shengzhi fait mention de l'irrigation par jarre il y a 2 000 ans en Chine. D\u2019autres travaux de recherche \u00e9voquent l\u2019utilisation de cette technique d\u2019irrigation durant l\u2019Empire romain. \n\nPar la suite, cette m\u00e9thode ancestrale va se r\u00e9pandre dans plusieurs continents, dont l\u2019Afrique et l\u2019Asie o\u00f9 elle deviendra une technique traditionnelle d\u2019arrosage des cultures. Elle est largement utilis\u00e9e aujourd\u2019hui en Am\u00e9rique latine, o\u00f9 elle prend son appellation \u00ab Oya \u00bb qui signifie \u00ab pot \u00bb en fran\u00e7ais.\n\nCette technique repose sur l'utilisation d'un pot d'argile cuit \u00e0 basse temp\u00e9rature que l'on enterre jusqu'au col et que l\u2019on remplit d\u2019eau pour irriguer les plantes plac\u00e9es autour. Les parois poreuses vont peu \u00e0 peu laisser s'\u00e9chapper l'eau qui sera absorb\u00e9e par les racines des plantes. L'irrigation par jarre est une technique d'irrigation souterraine stable et \u00e9conomique, particuli\u00e8rement adapt\u00e9e dans les zones arides, elle permet de r\u00e9duire de 60% l\u2019utilisation d\u2019eau. Aujourd\u2019hui, avec une augmentation des m\u00e9thodes de cr\u00e9ation de permaculture et de jardin \u00e9cologique, ce syst\u00e8me attire de plus en plus les int\u00e9r\u00eats.\n",
+        "exhume_par": "Iswann Ali Benali",
+        "categories": [
+            "Alimentation",
+            "H2O"
+        ],
+        "url_qr": "https://www.poterie-jamet.com/nos-produits/ollas-oyas-irrigation/les-oyas-ollas-comment-ca-marche/#:~:text=L'irrigation%20par%20une%20poterie,irriguer%20les%20plantes%20plac%C3%A9es%20autour.",
+        "image_path": "images_archive/IMG_3399.jpeg",
+        "date": "2026-01-29"
     }
 ]
