@@ -11,5 +11,18 @@
         "image_path": "images_archive/IMG_3391.jpeg",
         "date_ajout": "2026-01-28",
         "url_qr": ""
+    },
+    {
+        "id": "20260129015042",
+        "titre": "L\u2019affiche",
+        "annee": "2020",
+        "description": "OH la belle affiche",
+        "exhume_par": "Bob l\u2019Exhumeur",
+        "categories": [
+            "\u00c9nergie"
+        ],
+        "url_qr": "https://www.google.com/search?q=illustrator+ipad+vectorisation&oq=illustrator+ipad+vectorisation&gs_lcrp=EghlZGdlX2lvcyoGCAAQRRg5MgYIABBFGDkyCQgBEAAYDRiABDIICAIQABgNGB4yCggDEAAYCBgNGB4yCggEEAAYCBgNGB4yCggFEAAYCBgNGB6oAgCwAgE&hl=fr&sourceid=chrome-mobile&ie=UTF-8&zx=1769205578384&no_sw_cr=1",
+        "image_path": "images_archive/IMG_3376.jpeg",
+        "date": "2026-01-29"
     }
 ]
