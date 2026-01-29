@@ -4,13 +4,16 @@ import json
 import os
 from fpdf import FPDF
 from datetime import datetime
+from PIL import Image
 
 # --- CONFIGURATION INITIALE ---
 st.set_page_config(page_title="Paleo Maker", layout="wide", initial_sidebar_state="collapsed")
 
 DATA_FILE = "db_cartels.json"
 IMG_FOLDER = "images_archive"
-PALEO_PINK = (252, 237, 236) 
+# Codes couleurs
+PINK_RGB = (252, 237, 236)
+PINK_HEX = "#FCEDEC"
 
 # Création des dossiers
 if not os.path.exists(IMG_FOLDER):
@@ -19,45 +22,38 @@ if not os.path.exists(DATA_FILE):
     with open(DATA_FILE, 'w') as f:
         json.dump([], f)
 
-# --- STYLE CSS ---
-st.markdown("""
+# --- STYLE CSS (INTERFACE) ---
+st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&family=PT+Serif:wght@400;700&display=swap');
     
-    .stApp { background-color: #FAFAFA; font-family: 'PT Serif', serif; color: #000000 !important; }
+    .stApp {{ background-color: #FAFAFA; font-family: 'PT Serif', serif; color: black; }}
+    h1, h2, h3 {{ font-family: 'PT Sans Narrow', sans-serif !important; text-transform: uppercase; }}
     
-    h1, h2, h3, .stHeader { font-family: 'PT Sans Narrow', sans-serif !important; color: #000000 !important; text-transform: uppercase; font-weight: 700; }
+    /* Style des Inputs pour ressembler au design */
+    .stTextInput input, .stTextArea textarea {{
+        background-color: {PINK_HEX} !important;
+        color: black !important;
+        border: 1px solid #E0B0B0;
+    }}
     
-    .stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"] { 
-        background-color: #FCEDEC !important; 
-        color: #000000 !important; 
-        caret-color: #000000 !important;
-        border: 1px solid #E0B0B0 !important; 
-        font-family: 'PT Serif', serif !important; 
-    }
-    
-    div[data-baseweb="input"], div[data-baseweb="base-input"] { background-color: #FCEDEC !important; }
-    
-    .stTextInput label, .stTextArea label, .stSelectbox label, .stFileUploader label { 
-        color: #333333 !important; 
-        font-family: 'PT Sans Narrow', sans-serif !important; 
-        font-size: 1.1rem !important; 
-        text-transform: uppercase; 
-    }
-    
-    div.stButton > button { 
-        background-color: #000000; 
-        color: white; 
-        font-family: 'PT Sans Narrow', sans-serif !important; 
-        border: none; 
-        text-transform: uppercase; 
-        padding: 0.5rem 1rem; 
-    }
-    div.stButton > button:hover { background-color: #D65A5A; color: white; border: none; }
+    /* Bouton principal */
+    div.stButton > button {{
+        background-color: black;
+        color: white;
+        font-family: 'PT Sans Narrow', sans-serif;
+        text-transform: uppercase;
+        border-radius: 0px;
+        padding: 10px 20px;
+    }}
+    div.stButton > button:hover {{
+        background-color: #D65A5A;
+        border-color: #D65A5A;
+    }}
 </style>
 """, unsafe_allow_html=True)
 
-# --- FONCTIONS UTILITAIRES ---
+# --- FONCTIONS DONNÉES ---
 def load_data():
     with open(DATA_FILE, 'r') as f:
         try:
@@ -79,179 +75,265 @@ def save_image(uploaded_file):
         return file_path
     return None
 
-# --- CLASSE PDF ---
+# --- GÉNÉRATEUR PDF (NOUVELLE VERSION FPDF2) ---
 class PDF(FPDF):
     def __init__(self):
-        super().__init__()
-        # On charge les polices qui sont maintenant à la racine du dossier (à côté de app.py)
-        # S'ils sont absents, on utilise Arial par défaut pour éviter le crash
+        super().__init__(orientation='L', unit='mm', format='A4')
+        
+        # Chargement des polices (Chemins directs)
+        # On utilise try/except pour éviter le crash si une police manque
         try:
-            self.add_font('PTSerif', '', 'PTSerif-Regular.ttf', uni=True)
-            self.add_font('PTSerif', 'B', 'PTSerif-Bold.ttf', uni=True)
-            self.add_font('PTSansNarrow', '', 'PTSansNarrow-Regular.ttf', uni=True)
-            self.add_font('PTSansNarrow', 'B', 'PTSansNarrow-Bold.ttf', uni=True)
-            self.fonts_loaded = True
+            self.add_font('PTSerif', '', 'PTSerif-Regular.ttf')
+            self.add_font('PTSerif', 'B', 'PTSerif-Bold.ttf')
+            self.add_font('PTSansNarrow', '', 'PTSansNarrow-Regular.ttf')
+            self.add_font('PTSansNarrow', 'B', 'PTSansNarrow-Bold.ttf')
+            self.fonts_ok = True
         except Exception as e:
-            self.fonts_loaded = False
-            print(f"Erreur chargement police locale : {e}")
+            self.fonts_ok = False
+            print(f"Erreur police: {e}")
 
-    def header(self):
-        pass 
-
-    def create_cartel(self, data):
-        self.add_page(orientation='L')
+    def add_cartel_page(self, data):
+        self.add_page()
         page_width = 297
         page_height = 210
         mid_point = page_width / 2
         
-        # Fond Rose Droite
-        self.set_fill_color(PALEO_PINK[0], PALEO_PINK[1], PALEO_PINK[2])
+        # 1. Fond Rose (Moitié Droite)
+        self.set_fill_color(PINK_RGB[0], PINK_RGB[1], PINK_RGB[2])
         self.rect(x=mid_point, y=0, w=mid_point, h=page_height, style='F')
         
-        # Image Gauche
+        # 2. Image (Moitié Gauche)
         if data['image_path'] and os.path.exists(data['image_path']):
-            img_x = 15
-            img_y = 30
-            img_w = mid_point - 30
+            # On essaie de placer l'image proprement
+            # Max width = mid_point - marge(30)
             try:
-                self.image(data['image_path'], x=img_x, y=img_y, w=img_w)
+                self.image(data['image_path'], x=15, y=30, w=mid_point-30)
             except:
                 pass
-        
-        # Choix police (Sécurité)
-        f_title = 'PTSansNarrow' if self.fonts_loaded else 'Arial'
-        f_body = 'PTSerif' if self.fonts_loaded else 'Times'
 
-        # Crédit (Gauche)
+        # Choix des polices (Fallback Arial si fichiers manquants)
+        f_title = 'PTSansNarrow' if self.fonts_ok else 'Arial'
+        f_body = 'PTSerif' if self.fonts_ok else 'Times'
+
+        # 3. Crédit (Bas Gauche)
         self.set_xy(15, 185)
         self.set_font(f_title, 'B', 10) 
         self.set_text_color(80, 80, 80)
-        self.cell(100, 10, f"Exhumé par {data['exhume_par']}", ln=False)
+        self.cell(100, 10, f"Exhumé par {data['exhume_par']}", new_x="LMARGIN", new_y="NEXT")
 
-        # Contenu Droite
-        margin_right_block = 15
-        x_start_text = mid_point + margin_right_block
-        width_text = mid_point - (margin_right_block * 2)
+        # --- PARTIE DROITE ---
+        margin_right = 15
+        x_text = mid_point + margin_right
+        w_text = mid_point - (margin_right * 2)
 
-        # Année
-        self.set_xy(x_start_text, 25)
+        # 4. Année (Haut Droite)
+        self.set_xy(x_text, 25)
         self.set_font(f_title, 'B', 18)
         self.set_text_color(0, 0, 0)
-        self.cell(width_text, 10, str(data['annee']), ln=True, align='R')
+        self.cell(w_text, 10, str(data['annee']), align='R', new_x="LMARGIN", new_y="NEXT")
         
-        # Titre
-        self.set_x(x_start_text)
+        # 5. Titre
+        self.set_xy(x_text, self.get_y())
         self.set_font(f_title, 'B', 24)
-        self.multi_cell(width_text, 10, data['titre'].upper(), align='R')
-        self.ln(10)
+        self.multi_cell(w_text, 10, data['titre'].upper(), align='R')
+        self.ln(5)
 
-        # Description
-        self.set_x(x_start_text)
+        # 6. Description
+        self.set_xy(x_text, self.get_y())
         self.set_font(f_body, '', 11)
         self.set_text_color(20, 20, 20)
-        self.multi_cell(width_text, 6, data['description'], align='L')
+        self.multi_cell(w_text, 6, data['description'], align='L')
         
-        # Catégories
-        self.set_xy(x_start_text, 180)
+        # 7. Catégories & Footer
+        self.set_xy(x_text, 180)
         self.set_font(f_title, '', 9)
         cats_str = " • ".join(data['categories'])
-        self.cell(width_text, 5, f"Catégories : {cats_str}", ln=True, align='L')
+        self.cell(w_text, 5, f"Catégories : {cats_str}", new_x="LMARGIN", new_y="NEXT", align='L')
         
         self.ln(2)
         self.set_font(f_title, 'B', 10)
-        self.cell(width_text, 5, "← Pour aller plus loin", ln=True, align='L')
+        self.cell(w_text, 5, "← Pour aller plus loin", align='L')
+
+# --- FONCTION DE PRÉVISUALISATION HTML ---
+def render_preview(data):
+    """Crée une fausse page web qui ressemble exactement au PDF"""
+    
+    # On récupère l'image en base64 ou chemin relatif pour l'afficher
+    # Streamlit gère bien les chemins locaux
+    
+    img_html = ""
+    if data['image_path'] and os.path.exists(data['image_path']):
+        # Astuce : on utilise st.image plus bas, ici on fait juste la structure
+        pass 
+
+    cats = " • ".join(data['categories'])
+    
+    # Structure HTML Flexbox (Gauche Blanc / Droite Rose)
+    html = f"""
+    <div style="display: flex; width: 100%; height: 600px; border: 1px solid #ddd; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+        <div style="width: 50%; background-color: white; padding: 20px; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; width: 100%;">
+                <img src="app/static/{data['image_path']}" style="max-width: 90%; max-height: 400px; object-fit: contain;" />
+            </div>
+            <div style="width: 100%; text-align: left; margin-top: 20px; color: #666; font-family: 'PT Sans Narrow'; font-weight: bold; font-size: 14px;">
+                Exhumé par {data['exhume_par']}
+            </div>
+        </div>
+        
+        <div style="width: 50%; background-color: {PINK_HEX}; padding: 40px; font-family: 'PT Serif'; color: black; position: relative;">
+            <div style="text-align: right; font-family: 'PT Sans Narrow'; font-weight: bold; font-size: 24px; margin-bottom: 10px;">
+                {data['annee']}
+            </div>
+            <div style="text-align: right; font-family: 'PT Sans Narrow'; font-weight: bold; font-size: 32px; line-height: 1.1; margin-bottom: 30px; text-transform: uppercase;">
+                {data['titre']}
+            </div>
+            <div style="font-size: 16px; line-height: 1.5; text-align: left;">
+                {data['description'].replace(chr(10), '<br>')}
+            </div>
+            
+            <div style="position: absolute; bottom: 30px; left: 40px; width: 80%;">
+                <div style="font-family: 'PT Sans Narrow'; font-size: 12px; margin-bottom: 5px;">
+                    Catégories : {cats}
+                </div>
+                <div style="font-family: 'PT Sans Narrow'; font-weight: bold; font-size: 14px;">
+                    ← Pour aller plus loin
+                </div>
+            </div>
+        </div>
+    </div>
+    """
+    return html
+
 
 # --- INTERFACE ---
+
 st.title("⚡ PALEO-ÉNERGÉTIQUE")
+st.caption("Archive & Générateur de Cartels")
 
-tab1, tab2 = st.tabs(["✍️ ÉDITION", "📚 BIBLIOTHÈQUE"])
+tab_create, tab_library = st.tabs(["NOUVEAU CARTEL", "BIBLIOTHÈQUE & EXPORT"])
 
-# ONGLET 1 : CRÉATION
-with tab1:
-    col1, col2 = st.columns([1, 1.5])
+# === ONGLET 1 : CRÉATION ===
+with tab_create:
+    col_input, col_preview = st.columns([1, 1.5])
     
-    with col1:
-        st.markdown("### VISUEL")
-        uploaded_file = st.file_uploader("Image du dispositif", type=['png', 'jpg', 'jpeg'])
-        if uploaded_file:
-            st.image(uploaded_file, use_column_width=True)
-    
-    with col2:
-        st.markdown("### INFORMATIONS")
-        with st.form("cartel_form"):
-            annee = st.text_input("Année / Époque", value="2025")
-            titre = st.text_input("Titre du cartel")
-            description = st.text_area("Description complète", height=200)
+    with col_input:
+        st.subheader("1. Saisie")
+        with st.form("new_cartel"):
+            uploaded_file = st.file_uploader("Image", type=['png', 'jpg', 'jpeg'])
+            annee = st.text_input("Année", value="2025")
+            titre = st.text_input("Titre")
+            description = st.text_area("Description", height=150)
             exhume_par = st.text_input("Exhumé par")
             
-            st.markdown("<br><b>CATÉGORISATION</b>", unsafe_allow_html=True)
-            categories_base = ["Énergie", "H2O", "Mobilité", "Alimentation", "Solaire", "Eolien"]
-            selected_cats = st.multiselect("Choisir les catégories", categories_base)
-            new_cat_input = st.text_input("Autre catégorie (optionnel)")
+            cats_base = ["Énergie", "H2O", "Mobilité", "Alimentation", "Solaire", "Eolien"]
+            selected_cats = st.multiselect("Catégories", cats_base)
+            new_cat = st.text_input("Autre catégorie")
             
-            submitted = st.form_submit_button("VALIDER ET CRÉER")
+            submit = st.form_submit_button("PRÉVISUALISER & ENREGISTRER")
             
-            if submitted and titre and uploaded_file:
-                final_cats = selected_cats.copy()
-                if new_cat_input:
-                    final_cats.append(new_cat_input)
-                
-                img_path = save_image(uploaded_file)
-                entry = {
-                    "id": datetime.now().strftime("%Y%m%d%H%M%S"),
-                    "annee": annee,
-                    "titre": titre,
-                    "description": description,
-                    "exhume_par": exhume_par,
-                    "categories": final_cats,
-                    "image_path": img_path,
-                    "date_ajout": datetime.now().strftime("%Y-%m-%d")
-                }
-                save_data(entry)
-                st.success(f"Cartel '{titre}' archivé !")
-                
-                # Génération PDF
-                try:
-                    pdf = PDF()
-                    pdf.create_cartel(entry)
-                    pdf_byte = pdf.output(dest='S').encode('latin-1') 
-                    st.download_button("⬇️ TÉLÉCHARGER LE PDF", data=pdf_byte, file_name=f"Cartel_{titre}.pdf", mime='application/pdf')
-                except Exception as e:
-                    st.error(f"Erreur PDF : {e}")
+    if submit and uploaded_file and titre:
+        # Traitement Données
+        final_cats = selected_cats + ([new_cat] if new_cat else [])
+        img_path = save_image(uploaded_file)
+        
+        entry = {
+            "id": datetime.now().strftime("%Y%m%d%H%M%S"),
+            "titre": titre, "annee": annee, "description": description,
+            "exhume_par": exhume_par, "categories": final_cats,
+            "image_path": img_path, "date": datetime.now().strftime("%Y-%m-%d")
+        }
+        
+        save_data(entry)
+        st.success("✅ Cartel enregistré !")
+        
+        # Affichage Prévisualisation
+        with col_preview:
+            st.subheader("2. Résultat final")
+            # Affichage "fait main" pour simuler le PDF
+            
+            # Conteneur simulant le design
+            c1, c2 = st.columns([1, 1])
+            with c1: # Partie Blanche
+                st.image(img_path)
+                st.caption(f"Exhumé par {exhume_par}")
+            with c2: # Partie Rose (On triche avec st.info ou success mais couleur custom impossible ici simplement)
+                # On utilise du Markdown HTML pour forcer le design rose
+                st.markdown(f"""
+                <div style="background-color: {PINK_HEX}; padding: 20px; height: 100%; border-radius: 5px; color: black;">
+                    <div style="text-align: right; font-weight: bold; font-family: sans-serif; font-size: 1.2em;">{annee}</div>
+                    <div style="text-align: right; font-weight: bold; font-family: sans-serif; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px;">{titre.upper()}</div>
+                    <div style="font-family: serif; font-size: 1em; text-align: left;">{description}</div>
+                    <br><br>
+                    <small>Catégories : {" • ".join(final_cats)}</small><br>
+                    <b>← Pour aller plus loin</b>
+                </div>
+                """, unsafe_allow_html=True)
 
-# ONGLET 2 : CONSULTATION
-with tab2:
+
+# === ONGLET 2 : BIBLIOTHÈQUE ===
+with tab_library:
     data = load_data()
     if not data:
-        st.info("Aucune archive.")
+        st.info("Aucune archive pour le moment.")
     else:
         df = pd.DataFrame(data)
+        st.subheader(f"🗃️ Archives ({len(data)} fiches)")
         
-        all_cats = set()
-        for c in df['categories']: all_cats.update(c)
-        cat_filter = st.multiselect("FILTRER PAR CATÉGORIE", list(all_cats))
-        
-        if cat_filter:
-            mask = df['categories'].apply(lambda x: any(item in cat_filter for item in x))
-            df = df[mask]
+        # Formulaire de sélection pour export groupé
+        with st.form("export_form"):
+            # On crée une liste pour stocker les IDs sélectionnés
+            selected_ids = []
             
-        for index, row in df.iterrows():
-            with st.container():
-                c1, c2 = st.columns([1, 4])
+            # En-têtes colonnes
+            h1, h2, h3, h4 = st.columns([0.5, 1, 3, 1])
+            h1.write("Selec.")
+            h2.write("Image")
+            h3.write("Infos")
+            h4.write("Actions")
+            
+            st.divider()
+            
+            # Affichage de la liste avec Checkbox
+            for index, row in df.iterrows():
+                c1, c2, c3, c4 = st.columns([0.5, 1, 3, 1])
+                
                 with c1:
-                    if os.path.exists(row['image_path']): st.image(row['image_path'])
+                    # La checkbox ajoute l'ID à la liste si cochée
+                    if st.checkbox("", key=f"chk_{row['id']}"):
+                        selected_ids.append(row['id'])
+                
                 with c2:
-                    st.markdown(f"### {row['titre'].upper()} ({row['annee']})")
+                    if os.path.exists(row['image_path']):
+                        st.image(row['image_path'], use_column_width=True)
+                
+                with c3:
+                    st.markdown(f"**{row['titre'].upper()}** ({row['annee']})")
                     st.caption(" • ".join(row['categories']))
-                    st.write(row['description'])
-                    st.markdown(f"**Exhumé par : {row['exhume_par']}**")
-                    
-                    if st.button(f"📄 PDF", key=row['id']):
-                        try:
-                            pdf = PDF()
-                            pdf.create_cartel(row.to_dict())
-                            b = pdf.output(dest='S').encode('latin-1')
-                            st.download_button("TÉLÉCHARGER", data=b, file_name=f"Cartel_{row['id']}.pdf", mime='application/pdf', key=f"d{row['id']}")
-                        except Exception as e:
-                            st.error(f"Erreur PDF : {e}")
+                    st.write(row['description'][:150] + "...")
+                
                 st.divider()
+            
+            # Bouton d'action global
+            submitted = st.form_submit_button("📄 GÉNÉRER LE PDF DES ÉLÉMENTS SÉLECTIONNÉS")
+            
+            if submitted:
+                if not selected_ids:
+                    st.warning("Veuillez sélectionner au moins un cartel.")
+                else:
+                    # On filtre les données
+                    items_to_print = [d for d in data if d['id'] in selected_ids]
+                    
+                    # Génération du PDF multipage
+                    pdf = PDF()
+                    for item in items_to_print:
+                        pdf.add_cartel_page(item)
+                    
+                    # Output
+                    pdf_bytes = pdf.output() # FPDF2 retourne des bytes directement
+                    
+                    st.download_button(
+                        label=f"⬇️ TÉLÉCHARGER LE CATALOGUE ({len(items_to_print)} PAGES)",
+                        data=pdf_bytes,
+                        file_name=f"Catalogue_Paleo_{datetime.now().strftime('%H%M')}.pdf",
+                        mime="application/pdf"
+                    )
