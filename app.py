@@ -191,7 +191,7 @@ def wrap_text_pixel(text, font, max_width, draw):
         lines.append(current_line)
     return lines
 
-# --- GENERATEUR IMAGE OPTIMISÉ (NOUVELLE LOGIQUE) ---
+# --- GENERATEUR IMAGE OPTIMISÉ ---
 def generate_cartel_image(data):
     img = Image.new('RGB', (A4_WIDTH_PX, A4_HEIGHT_PX), color='white')
     draw = ImageDraw.Draw(img)
@@ -202,10 +202,9 @@ def generate_cartel_image(data):
         try: return ImageFont.truetype(name, size)
         except: return ImageFont.load_default()
 
-    # Tailles de police ajustées (plus petites pour éviter les débordements)
-    font_year_size = 80
-    font_title_size = 80 # Réduit de 120 à 80 pour éviter le 4 lignes
-    font_body_base_size = 50 # Taille de départ pour la description
+    font_year_size = 90
+    font_title_size = 120
+    font_body_base_size = 55
     
     font_year = load_font("PTSansNarrow-Bold.ttf", font_year_size)
     font_title = load_font("PTSansNarrow-Bold.ttf", font_title_size)
@@ -214,7 +213,7 @@ def generate_cartel_image(data):
 
     margin = int(15 * MM_TO_PX)
     
-    # 1. IMAGE GAUCHE
+    # IMAGE
     if data.get('image_path') and os.path.exists(data['image_path']):
         try:
             pil_img = Image.open(data['image_path'])
@@ -237,85 +236,59 @@ def generate_cartel_image(data):
             img.paste(pil_img, (pos_x, pos_y))
         except: pass
 
-    # 2. CREDIT GAUCHE
+    # Crédit
     credit_y = int(185 * MM_TO_PX)
     draw.text((margin, credit_y), f"Exhumé par {data.get('exhume_par', '')}", font=font_credit, fill=(80, 80, 80))
 
-    # --- PARTIE DROITE : LE TETRIS DU TEXTE ---
+    # DROITE
     text_x_start = mid_x + margin
     text_width_limit = A4_WIDTH_PX - text_x_start - margin
-    
-    # Position de départ (Plus haut : 12mm du haut)
-    current_y = int(12 * MM_TO_PX)
+    current_y = int(15 * MM_TO_PX) 
 
-    # A. ANNÉE
+    # Année
     year_str = str(data.get('annee', ''))
     bbox_year = draw.textbbox((0, 0), year_str, font=font_year)
     year_w = bbox_year[2] - bbox_year[0]
     draw.text((A4_WIDTH_PX - margin - year_w, current_y), year_str, font=font_year, fill="black")
-    
-    # Espace proportionnel après l'année
-    current_y += font_year_size + int(font_year_size * 0.2) 
+    current_y += font_year_size + 10
 
-    # B. TITRE (Interligne serré)
+    # Titre
     title_str = data.get('titre', '').upper()
     title_lines = wrap_text_pixel(title_str, font_title, text_width_limit, draw)
-    
-    title_line_height = int(font_title_size * 1.1) # Interligne proportionnel (110%)
-    
     for line in title_lines:
         bbox = draw.textbbox((0, 0), line, font=font_title)
         line_w = bbox[2] - bbox[0]
         draw.text((A4_WIDTH_PX - margin - line_w, current_y), line, font=font_title, fill="black")
-        current_y += title_line_height
-    
-    current_y += 30 # Marge avant description
+        current_y += font_title_size + 15
+    current_y += 40
 
-    # C. DESCRIPTION (AUTO-FIT + TRUNCATE)
+    # Description (Auto-Fit)
     desc_text = data.get('description', '')
-    
-    # On définit la ligne rouge en bas (Le haut du footer)
     footer_y_start = int(180 * MM_TO_PX)
-    available_height = footer_y_start - current_y - 20 # 20px de marge de sécurité
+    available_height = footer_y_start - current_y - 20
     
     font_desc_size = font_body_base_size
+    font_body = load_font("PTSerif-Regular.ttf", font_desc_size)
     desc_lines = []
-    final_font_body = None
     
-    # Boucle de réduction : on rapetisse tant que ça ne rentre pas
-    while font_desc_size > 30: # On ne descend pas en dessous de 30px pour la lisibilité
-        final_font_body = load_font("PTSerif-Regular.ttf", font_desc_size)
-        desc_lines = wrap_text_pixel(desc_text, final_font_body, text_width_limit, draw)
-        
-        line_height = int(font_desc_size * 1.2) # Interligne 120%
+    while font_desc_size > 20: 
+        font_body = load_font("PTSerif-Regular.ttf", font_desc_size)
+        desc_lines = wrap_text_pixel(desc_text, font_body, text_width_limit, draw)
+        line_height = font_desc_size + 15
         total_text_height = len(desc_lines) * line_height
-        
         if total_text_height <= available_height:
-            break # Ça rentre !
-        
-        font_desc_size -= 2 # On réduit encore
+            break 
+        font_desc_size -= 2
     
-    # Si ça ne rentre TOUJOURS pas (même en taille 30), on coupe le texte
-    line_height = int(font_desc_size * 1.2)
-    max_lines = int(available_height / line_height)
-    
-    if len(desc_lines) > max_lines:
-        desc_lines = desc_lines[:max_lines]
-        # On ajoute "..." à la fin de la dernière ligne
-        if desc_lines:
-            desc_lines[-1] = desc_lines[-1][:-3] + "..."
-
-    # Dessin final de la description
     for line in desc_lines:
-        draw.text((text_x_start, current_y), line, font=final_font_body, fill=(20, 20, 20))
-        current_y += line_height
+        draw.text((text_x_start, current_y), line, font=font_body, fill=(20, 20, 20))
+        current_y += font_desc_size + 15
 
-    # D. FOOTER (Position fixe)
+    # Footer
     cats_str = " • ".join(data.get('categories', []))
     cat_y = int(180 * MM_TO_PX)
     draw.text((text_x_start, cat_y), f"Catégories : {cats_str}", font=font_cats, fill="black")
     
-    # E. QR CODE
     if data.get('url_qr'):
         try:
             qr = qrcode.QRCode(version=1, box_size=10, border=1)
@@ -324,8 +297,6 @@ def generate_cartel_image(data):
             qr_img = qr.make_image(fill_color="black", back_color=PINK_RGB)
             qr_size_px = int(30 * MM_TO_PX)
             qr_img = qr_img.resize((qr_size_px, qr_size_px), Image.Resampling.NEAREST)
-            
-            # Positionnement du QR code (Fixe en bas à droite)
             qr_x = A4_WIDTH_PX - margin - qr_size_px
             qr_y = A4_HEIGHT_PX - margin - qr_size_px
             img.paste(qr_img, (qr_x, qr_y))
@@ -333,7 +304,7 @@ def generate_cartel_image(data):
     
     return img
 
-# --- PREVIEW HTML CORRIGÉE (SANS ESPACES BUGGÉS) ---
+# --- PREVIEW HTML ---
 def afficher_cartel_visuel(data, is_draft=False):
     c1, c2 = st.columns([1, 1])
     with c1:
@@ -347,28 +318,25 @@ def afficher_cartel_visuel(data, is_draft=False):
         
         link_html = ""
         if data.get('url_qr'):
-            link_html = f"<div style='margin-top:15px; text-align:right;'><a href='{data['url_qr']}' target='_blank' style='text-decoration:none; background-color:black; color:white; padding:5px 10px; border-radius:4px; font-family:sans-serif; font-size:0.8em;'>🔗 LIEN</a></div>"
+            link_html = f'<div style="margin-top:15px; text-align:right;"><a href="{data["url_qr"]}" target="_blank" style="text-decoration:none; background-color:black; color:white; padding:5px 10px; border-radius:4px; font-family:sans-serif; font-size:0.8em;">🔗 LIEN</a></div>'
         
         draft_badge = ""
         if is_draft:
             draft_badge = "<div style='background:gold; color:black; padding:5px; text-align:center; font-weight:bold; margin-bottom:10px;'>⚠️ BROUILLON</div>"
 
-        # On nettoie les retours à la ligne pour le HTML
-        desc_html = data.get('description', '').replace('\n', '<br>')
+        full_description = data.get('description', '').replace('\n', '<br>')
 
-        # HTML PUR EN UNE LIGNE POUR ÉVITER L'INTERPRÉTATION CODE
-        html = f"""
-        <div style="background-color:{PINK_HEX}; padding:20px; border-radius:5px; color:black; min-height:300px;">
-            {draft_badge}
-            <div style="text-align:right; font-weight:bold; font-size:1.2em;">{data.get('annee', '')}</div>
-            <div style="text-align:right; font-weight:bold; font-size:1.5em; line-height:1.1; margin-bottom:20px; text-transform:uppercase;">{data.get('titre', '')}</div>
-            <div style="font-family:serif; font-size:1em; text-align:left;">{desc_html}</div>
-            <br>
-            <small>Catégories : {cats}</small>
-            {link_html}
-        </div>
-        """
-        st.markdown(html, unsafe_allow_html=True)
+        st.markdown(f"""
+<div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px;">
+{draft_badge}
+<div style="text-align: right; font-weight: bold; font-size: 1.2em;">{data.get('annee', '')}</div>
+<div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase;">{data.get('titre', '')}</div>
+<div style="font-family: serif; font-size: 1em; text-align: left;">{full_description}</div>
+<br>
+<small>Catégories : {cats}</small>
+{link_html}
+</div>
+""", unsafe_allow_html=True)
 
 # --- INIT DATA ---
 full_data = load_json(DATA_FILE)
@@ -400,7 +368,6 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# --- NAVIGATION ---
 menu_options = ["📚 BIBLIOTHÈQUE", "➕ NOUVEAU CARTEL", "💡 IDÉES & BROUILLONS"]
 selected_page = st.radio("", menu_options, index=st.session_state.nav_index, horizontal=True, label_visibility="collapsed")
 
@@ -419,7 +386,7 @@ if selected_page == "📚 BIBLIOTHÈQUE":
         if cat_filter:
             filtered_data = [d for d in full_data if any(cat in d['categories'] for cat in cat_filter)]
 
-        # BOUTONS SELECTION
+        # --- NOUVEAUX BOUTONS DE SÉLECTION ---
         col_sel_all, col_desel_all, col_spacer = st.columns([1, 1, 2])
         if col_sel_all.button("✅ Tout sélectionner (visibles)"):
             for d in filtered_data:
@@ -430,6 +397,7 @@ if selected_page == "📚 BIBLIOTHÈQUE":
                 if d['id'] in st.session_state.selection_active:
                     st.session_state.selection_active.remove(d['id'])
             st.rerun()
+        # -------------------------------------
 
         count_sel = len(st.session_state.selection_active)
         
@@ -498,6 +466,7 @@ if selected_page == "📚 BIBLIOTHÈQUE":
                             e_ex = st.text_input("Exhumé par", value=row['exhume_par'])
                             e_im = st.file_uploader("Nouvelle image ?", type=['png', 'jpg'])
                         with e_c2:
+                            # MODIFICATION : Limite caractères + Compteur
                             e_de = st.text_area("Description (Max 1500 caractères)", value=row['description'], max_chars=1500)
                             cur_cats = [c for c in row['categories'] if c in dynamic_cats_list]
                             e_ca = st.multiselect("Catégories", dynamic_cats_list, default=cur_cats)
@@ -558,6 +527,7 @@ elif selected_page == "➕ NOUVEAU CARTEL":
             titre = st.text_input("Titre (Obligatoire)")
             annee = st.text_input("Année", value="2025")
         
+        # MODIFICATION : Limite caractères + Compteur
         description = st.text_area("Description (Max 1500 caractères)", height=150, max_chars=1500)
         
         c_cat, c_qr = st.columns(2)
@@ -596,6 +566,7 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
     with st.expander("➕ Ajouter une idée / un brouillon", expanded=False):
         with st.form("new_draft"):
             d_titre = st.text_input("Titre (Obligatoire)")
+            # MODIFICATION : Limite caractères + Compteur
             d_desc = st.text_area("Notes / Description (Max 1500 caractères)", max_chars=1500)
             
             c_img_d, c_opt_d = st.columns([1, 2])
@@ -642,6 +613,7 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
                         ed_an = st.text_input("Année", value=d_row.get('annee', ''))
                         ed_ex = st.text_input("Exhumé par", value=d_row.get('exhume_par', ''))
                         ed_im = st.file_uploader("Image", type=['png', 'jpg'])
+                        # MODIFICATION : Limite caractères + Compteur
                         ed_de = st.text_area("Desc (Max 1500 caractères)", value=d_row.get('description', ''), max_chars=1500)
                         
                         cur_cats = [c for c in d_row.get('categories', []) if c in dynamic_cats_list]
