@@ -72,13 +72,14 @@ def save_image(uploaded_file):
         return file_path
     return None
 
-# --- AFFICHAGE VISUEL HTML ---
+# --- AFFICHAGE VISUEL ---
 def afficher_cartel_visuel(data):
-    """Affiche le cartel tel qu'il apparaîtra, pour vérification visuelle"""
+    """Affiche le cartel visuellement dans l'app"""
     c1, c2 = st.columns([1, 1])
     
     with c1:
         if data['image_path'] and os.path.exists(data['image_path']):
+            # On simule le centrage vertical
             st.image(data['image_path'], use_column_width=True)
         else:
             st.warning("Image manquante")
@@ -100,50 +101,74 @@ def afficher_cartel_visuel(data):
         </div>
         """, unsafe_allow_html=True)
 
-# --- GÉNÉRATEUR PDF ROBUSTE ---
+# --- GÉNÉRATEUR PDF OPTIMISÉ ---
 class PDF(FPDF):
     def __init__(self):
-        # A4 Paysage : 297mm x 210mm
         super().__init__(orientation='L', unit='mm', format='A4')
         self.set_auto_page_break(False)
         self.set_margins(0, 0, 0)
         
-        # Gestion des polices avec sécurité
-        self.font_header = 'Helvetica' # Valeur par défaut
-        self.font_body = 'Times'       # Valeur par défaut
+        self.font_header = 'Helvetica'
+        self.font_body = 'Times'
         
         try:
             if os.path.exists('PTSansNarrow-Bold.ttf'):
                 self.add_font('PTSansNarrow', 'B', 'PTSansNarrow-Bold.ttf')
                 self.add_font('PTSansNarrow', '', 'PTSansNarrow-Regular.ttf')
                 self.font_header = 'PTSansNarrow'
-            
             if os.path.exists('PTSerif-Regular.ttf'):
                 self.add_font('PTSerif', '', 'PTSerif-Regular.ttf')
                 self.font_body = 'PTSerif'
-        except Exception as e:
-            print(f"Info: Polices non chargées ({e}), utilisation défaut.")
+        except: pass
 
     def add_cartel_page(self, data):
         self.add_page()
         
-        # Dimensions strictes
-        W = 297
-        H = 210
-        MID = W / 2
+        # Dimensions Page
+        W_PAGE = 297
+        H_PAGE = 210
+        MID = W_PAGE / 2
         
         # 1. FOND ROSE (Droite)
         self.set_fill_color(PINK_RGB[0], PINK_RGB[1], PINK_RGB[2])
-        self.rect(x=MID, y=0, w=MID, h=H, style='F')
-        
-        # 2. IMAGE (Gauche)
+        self.rect(x=MID, y=0, w=MID, h=H_PAGE, style='F')
+
+        # 2. IMAGE (CALCUL INTELLIGENT DE LA TAILLE)
         if data['image_path'] and os.path.exists(data['image_path']):
             try:
-                self.image(data['image_path'], x=15, y=30, w=MID-30)
-            except: pass
+                # --- ZONE AUTORISÉE POUR L'IMAGE ---
+                # On définit une boîte stricte pour que l'image ne dépasse jamais
+                BOX_X = 15          # Marge gauche
+                BOX_Y = 30          # Marge haute
+                BOX_W = MID - 30    # Largeur dispo (Moitié page - 2x15 de marge)
+                BOX_H = 145         # Hauteur dispo (Pour s'arrêter avant le texte du bas)
 
-        # 3. CRÉDIT (Bas Gauche)
-        self.set_xy(15, 185)
+                # Récupération taille réelle image
+                with Image.open(data['image_path']) as img:
+                    orig_w, orig_h = img.size
+                
+                # Calcul du facteur de redimensionnement (pour tenir dans la boite)
+                ratio_w = BOX_W / orig_w
+                ratio_h = BOX_H / orig_h
+                scale = min(ratio_w, ratio_h) # On prend le ratio le plus restrictif
+                
+                new_w = orig_w * scale
+                new_h = orig_h * scale
+
+                # Centrage dans la zone autorisée
+                offset_x = (BOX_W - new_w) / 2
+                offset_y = (BOX_H - new_h) / 2
+                
+                final_x = BOX_X + offset_x
+                final_y = BOX_Y + offset_y
+
+                # Affichage de l'image redimensionnée et centrée
+                self.image(data['image_path'], x=final_x, y=final_y, w=new_w, h=new_h)
+            except Exception as e:
+                print(f"Erreur image: {e}")
+
+        # 3. CRÉDIT (Bas Gauche) - Position fixe
+        self.set_xy(15, 185) # Position Y fixe en bas
         self.set_font(self.font_header, 'B', 10) 
         self.set_text_color(80, 80, 80)
         self.cell(100, 10, f"Exhumé par {data['exhume_par']}")
@@ -170,8 +195,8 @@ class PDF(FPDF):
         self.set_text_color(20, 20, 20)
         self.multi_cell(W_TEXT, 6, data['description'], align='L')
         
-        # 7. FOOTER
-        self.set_xy(X_TEXT, 180)
+        # 7. FOOTER (Catégories)
+        self.set_xy(X_TEXT, 180) # Position Y fixe en bas
         self.set_font(self.font_header, '', 9)
         cats_str = " • ".join(data['categories'])
         self.cell(W_TEXT, 5, f"Catégories : {cats_str}", align='L', ln=True)
@@ -230,16 +255,13 @@ with tab_create:
 # === ONGLET 2 : BIBLIOTHÈQUE ===
 with tab_library:
     data = load_data()
-    data = data[::-1] # Plus récent en haut
+    data = data[::-1]
     
     if not data:
         st.info("Aucune archive.")
     else:
         st.subheader(f"🗃️ Archives ({len(data)} fiches)")
-        st.caption("Cochez les cases pour générer un PDF multipages.")
         
-        # Liste pour collecter les IDs sélectionnés
-        # On initialise cette liste avant le formulaire
         selected_ids_in_form = []
 
         with st.form("selection_form"):
@@ -249,9 +271,7 @@ with tab_library:
                     st.write("") 
                     st.write("")
                     st.write("")
-                    # On stocke le résultat du checkbox directement
-                    is_checked = st.checkbox("", key=f"chk_{row['id']}")
-                    if is_checked:
+                    if st.checkbox("", key=f"chk_{row['id']}"):
                         selected_ids_in_form.append(row['id'])
                 
                 with cols[1]:
@@ -260,24 +280,19 @@ with tab_library:
             
             submit_selection = st.form_submit_button("GÉNÉRER LE PDF AVEC LA SÉLECTION")
 
-        # LOGIQUE HORS FORMULAIRE
         if submit_selection:
             if not selected_ids_in_form:
                 st.warning("Veuillez cocher au moins un cartel.")
             else:
-                # On filtre les données
                 final_selection = [d for d in data if d['id'] in selected_ids_in_form]
                 
-                # Génération PDF
                 pdf = PDF()
                 for item in final_selection:
                     pdf.add_cartel_page(item)
                 
-                # Conversion sécurisée en bytes
                 try:
                     pdf_bytes = bytes(pdf.output())
                 except TypeError:
-                    # Fallback si ancienne version de fpdf
                     pdf_bytes = pdf.output(dest='S').encode('latin-1')
 
                 st.success(f"PDF généré avec {len(final_selection)} page(s) !")
