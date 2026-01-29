@@ -1,0 +1,118 @@
+[
+    {
+        "id": "20260128233214",
+        "annee": "2025",
+        "titre": "HYDRO POMPE DE SAQIYA DE ISMAIL AL-JAZARI",
+        "description": "Al-Jazari est un inventeur prolifique qui a con\u00e7u de nombreuses machines pour \u00e9lever l'eau, dont des moulins \u00e0 eau et des roues \u00e0 eau avec des cames sur leur essieu pour faire fonctionner des automates. \n\nOn lui attribue la premi\u00e8re utilisation connue d'un vilebrequin dans une pompe \u00e0 cha\u00eene. Ces m\u00e9canismes ont fourni de l\u2019eau \u00e0 Damas \u00e0 partir du XIIIe si\u00e8cle jusqu'\u00e0 l'\u00e9poque moderne et \u00e9taient utilis\u00e9s dans tout le monde islamique m\u00e9di\u00e9val.",
+        "exhume_par": "Cindy Fiorentino",
+        "categories": [
+            "H2O"
+        ],
+        "image_path": "images_archive/IMG_3391.jpeg",
+        "date_ajout": "2026-01-28"
+    },
+    {
+        "id": "20260128233855",
+        "annee": "2010",
+        "titre": "Bla Bla",
+        "description": "Test",
+        "exhume_par": "Bob",
+        "categories": [
+            "H2O",
+            "Solaire",
+            "Avion"
+        ],
+        "image_path": "images_archive/IMG_3369.jpeg",
+        "date_ajout": "2026-01-28"
+    },
+    {
+        "id": "20260129001253",
+        "titre": "Tesmlkaj",
+        "annee": "2025",
+        "description": "Qmlsdkfjmqdslkf",
+        "exhume_par": "dsff",
+        "categories": [],
+        "image_path": "images_archive/IMG_3376.jpeg",
+        "date": "2026-01-29"
+    },
+    {
+        "id": "20260129001916",
+        "titre": "Glaoglao",
+        "annee": "2000",
+        "description": "papapapapapappapappaap",
+        "exhume_par": "steve",
+        "categories": [
+            "Mobilit\u00e9",
+            "Alimentation"
+        ],
+        "image_path": "images_archive/IMG_3374.jpeg",
+        "date": "2026-01-29"
+    },
+    {
+        "id": "20260129003937",
+        "titre": "fdsq",
+        "annee": "2025",
+        "description": "fdsq",
+        "exhume_par": "qf",
+        "categories": [
+            "Steamamama"
+        ],
+        "image_path": "images_archive/IMG_3332.jpeg",
+        "date": "2026-01-29"
+    },
+    {
+        "id": "20260129004356",
+        "titre": "Dq",
+        "annee": "2025",
+        "description": "Qd",
+        "exhume_par": "Fsdf",
+        "categories": [
+            "Solaire"
+        ],
+        "url_qr": "https://fonts.google.com/download/next-steps",
+        "image_path": "images_archive/IMG_3358.png",
+        "date": "2026-01-29"
+    },
+    {
+        "id": "20260129005114",
+        "titre": "Testtt",
+        "annee": "1990",
+        "description": "dqsfd",
+        "exhume_par": "qdfqs",
+        "categories": [
+            "Eolien",
+            "Steamamama"
+        ],
+        "url_qr": "https://dr-cos.info/fp-bellbottoms.html",
+        "image_path": "images_archive/IMG_3302.jpeg",
+        "date": "2026-01-29"
+    },
+    {
+        "id": "20260129010957",
+        "titre": "Testes",
+        "annee": "1980",
+        "description": "blablbalblablablblab",
+        "exhume_par": "Raph le testeur",
+        "categories": [
+            "Eolien",
+            "Mobilit\u00e9"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3245.jpeg",
+        "date": "2026-01-29"
+    },
+    {
+        "id": "20260129011337",
+        "titre": "Testes",
+        "annee": "1980",
+        "description": "blablbalblablablblab",
+        "exhume_par": "Raph le testeur",
+        "categories": [
+            "Eolien",
+            "Mobilit\u00e9"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3245.jpeg",
+        "date": "2026-01-29"
+    }
+]
