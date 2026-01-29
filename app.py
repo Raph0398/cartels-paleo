@@ -4,6 +4,7 @@ import json
 import os
 import zipfile
 import io
+import textwrap
 import qrcode
 import re
 from datetime import datetime
@@ -133,7 +134,7 @@ def toggle_selection(cartel_id):
     else:
         st.session_state.selection_active.add(cartel_id)
 
-# --- FONCTION DE CONVERSION ROMAIN -> ENTIER ---
+# --- FONCTION DE TRI ---
 def roman_to_int(s):
     roman = {'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000}
     num = 0
@@ -146,63 +147,73 @@ def roman_to_int(s):
                 num += roman[s[i]]
         num += roman[s[-1]]
         return num
-    except:
-        return 0
+    except: return 0
 
-# --- FONCTION DE TRI AVANCÉE (CHIFFRES, ROMAINS, AVANT JC) ---
 def get_year_for_sort(entry):
     text = str(entry.get('annee', '9999')).lower().strip()
-    
-    # 1. Détection Antiquité (Avant JC)
-    # On regarde si ça contient "av", "bc", ou un signe moins
     is_bc = 'av' in text or 'bc' in text or 'bef' in text or text.startswith('-')
     
-    # 2. Recherche de chiffres Arabes (ex: 1850, -300)
     match_digit = re.search(r'\d+', text)
     if match_digit:
         val = int(match_digit.group())
-        # Si c'est marqué "av. JC", on rend le chiffre négatif
-        if is_bc: 
-            val = -abs(val)
+        if is_bc: val = -abs(val)
         return val
 
-    # 3. Recherche de chiffres Romains (ex: XVII, xix)
-    # Regex qui cherche des séquences de lettres romaines isolées
     match_roman = re.search(r'(?i)\b[mdclxvi]+\b', text)
     if match_roman:
-        # On convertit le chiffre romain (ex: XVII -> 17)
-        val = roman_to_int(match_roman.group())
-        # On multiplie par 100 pour avoir une année approximative (XVII -> 1700)
-        val = val * 100
-        if is_bc:
-            val = -abs(val)
+        val = roman_to_int(match_roman.group()) * 100
+        if is_bc: val = -abs(val)
         return val
-
-    # 4. Par défaut (fin de liste)
     return 9999
 
-# --- GENERATEUR IMAGE ---
+# --- OUTILS DE TEXTE PIL ---
+def wrap_text_pixel(text, font, max_width, draw):
+    """Découpe le texte en lignes selon la largeur en pixels"""
+    lines = []
+    paragraphs = text.split('\n')
+    
+    for paragraph in paragraphs:
+        if not paragraph:
+            lines.append("")
+            continue
+        words = paragraph.split()
+        if not words: continue
+        current_line = words[0]
+        for word in words[1:]:
+            test_line = current_line + " " + word
+            bbox = draw.textbbox((0, 0), test_line, font=font)
+            w = bbox[2] - bbox[0]
+            if w <= max_width:
+                current_line = test_line
+            else:
+                lines.append(current_line)
+                current_line = word
+        lines.append(current_line)
+    return lines
+
+# --- GENERATEUR IMAGE OPTIMISÉ ---
 def generate_cartel_image(data):
     img = Image.new('RGB', (A4_WIDTH_PX, A4_HEIGHT_PX), color='white')
     draw = ImageDraw.Draw(img)
     mid_x = int(A4_WIDTH_PX / 2)
     draw.rectangle([mid_x, 0, A4_WIDTH_PX, A4_HEIGHT_PX], fill=PINK_RGB)
     
-    try:
-        font_year = ImageFont.truetype("PTSansNarrow-Bold.ttf", 90)
-        font_title = ImageFont.truetype("PTSansNarrow-Bold.ttf", 120)
-        font_body = ImageFont.truetype("PTSerif-Regular.ttf", 55)
-        font_credit = ImageFont.truetype("PTSansNarrow-Bold.ttf", 45)
-        font_cats = ImageFont.truetype("PTSansNarrow-Regular.ttf", 40)
-    except:
-        font_year = ImageFont.load_default()
-        font_title = font_year
-        font_body = font_year
-        font_credit = font_year
-        font_cats = font_year
+    def load_font(name, size):
+        try: return ImageFont.truetype(name, size)
+        except: return ImageFont.load_default()
+
+    font_year_size = 90
+    font_title_size = 120
+    font_body_base_size = 55
+    
+    font_year = load_font("PTSansNarrow-Bold.ttf", font_year_size)
+    font_title = load_font("PTSansNarrow-Bold.ttf", font_title_size)
+    font_credit = load_font("PTSansNarrow-Bold.ttf", 45)
+    font_cats = load_font("PTSansNarrow-Regular.ttf", 40)
 
     margin = int(15 * MM_TO_PX)
     
+    # IMAGE
     if data.get('image_path') and os.path.exists(data['image_path']):
         try:
             pil_img = Image.open(data['image_path'])
@@ -225,55 +236,55 @@ def generate_cartel_image(data):
             img.paste(pil_img, (pos_x, pos_y))
         except: pass
 
+    # Crédit
     credit_y = int(185 * MM_TO_PX)
     draw.text((margin, credit_y), f"Exhumé par {data.get('exhume_par', '')}", font=font_credit, fill=(80, 80, 80))
 
+    # DROITE
     text_x_start = mid_x + margin
-    year_str = str(data.get('annee', ''))
-    bbox = draw.textbbox((0, 0), year_str, font=font_year)
-    text_w = bbox[2] - bbox[0]
-    draw.text((A4_WIDTH_PX - margin - text_w, int(25 * MM_TO_PX)), year_str, font=font_year, fill="black")
-    
-    # Titre manuel wrapping
-    title_str = data.get('titre', '').upper()
-    current_y = int(50 * MM_TO_PX)
-    words = title_str.split()
-    lines = []
-    current_line = []
-    for word in words:
-        if len(" ".join(current_line + [word])) <= 18:
-            current_line.append(word)
-        else:
-            lines.append(" ".join(current_line))
-            current_line = [word]
-    lines.append(" ".join(current_line))
+    text_width_limit = A4_WIDTH_PX - text_x_start - margin
+    current_y = int(15 * MM_TO_PX) 
 
-    for line in lines:
+    # Année
+    year_str = str(data.get('annee', ''))
+    bbox_year = draw.textbbox((0, 0), year_str, font=font_year)
+    year_w = bbox_year[2] - bbox_year[0]
+    draw.text((A4_WIDTH_PX - margin - year_w, current_y), year_str, font=font_year, fill="black")
+    current_y += font_year_size + 10
+
+    # Titre
+    title_str = data.get('titre', '').upper()
+    title_lines = wrap_text_pixel(title_str, font_title, text_width_limit, draw)
+    for line in title_lines:
         bbox = draw.textbbox((0, 0), line, font=font_title)
         line_w = bbox[2] - bbox[0]
-        line_h = bbox[3] - bbox[1]
         draw.text((A4_WIDTH_PX - margin - line_w, current_y), line, font=font_title, fill="black")
-        current_y += line_h + 20
-    current_y += 60
+        current_y += font_title_size + 15
+    current_y += 40
 
-    # Description wrapping
-    words = data.get('description', '').split()
-    lines = []
-    current_line = []
-    for word in words:
-        if len(" ".join(current_line + [word])) <= 50:
-            current_line.append(word)
-        else:
-            lines.append(" ".join(current_line))
-            current_line = [word]
-    lines.append(" ".join(current_line))
-
-    for line in lines:
+    # Description (Auto-Fit)
+    desc_text = data.get('description', '')
+    footer_y_start = int(180 * MM_TO_PX)
+    available_height = footer_y_start - current_y - 20
+    
+    font_desc_size = font_body_base_size
+    font_body = load_font("PTSerif-Regular.ttf", font_desc_size)
+    desc_lines = []
+    
+    while font_desc_size > 20: 
+        font_body = load_font("PTSerif-Regular.ttf", font_desc_size)
+        desc_lines = wrap_text_pixel(desc_text, font_body, text_width_limit, draw)
+        line_height = font_desc_size + 15
+        total_text_height = len(desc_lines) * line_height
+        if total_text_height <= available_height:
+            break 
+        font_desc_size -= 2
+    
+    for line in desc_lines:
         draw.text((text_x_start, current_y), line, font=font_body, fill=(20, 20, 20))
-        bbox = draw.textbbox((0, 0), line, font=font_body)
-        line_h = bbox[3] - bbox[1]
-        current_y += line_h + 15
+        current_y += font_desc_size + 15
 
+    # Footer
     cats_str = " • ".join(data.get('categories', []))
     cat_y = int(180 * MM_TO_PX)
     draw.text((text_x_start, cat_y), f"Catégories : {cats_str}", font=font_cats, fill="black")
@@ -313,7 +324,6 @@ def afficher_cartel_visuel(data, is_draft=False):
         if is_draft:
             draft_badge = "<div style='background:gold; color:black; padding:5px; text-align:center; font-weight:bold; margin-bottom:10px;'>⚠️ BROUILLON</div>"
 
-        # Traitement du texte pour affichage complet
         full_description = data.get('description', '').replace('\n', '<br>')
 
         st.markdown(f"""
@@ -358,7 +368,6 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# --- NAVIGATION ---
 menu_options = ["📚 BIBLIOTHÈQUE", "➕ NOUVEAU CARTEL", "💡 IDÉES & BROUILLONS"]
 selected_page = st.radio("", menu_options, index=st.session_state.nav_index, horizontal=True, label_visibility="collapsed")
 
@@ -376,6 +385,19 @@ if selected_page == "📚 BIBLIOTHÈQUE":
         filtered_data = full_data
         if cat_filter:
             filtered_data = [d for d in full_data if any(cat in d['categories'] for cat in cat_filter)]
+
+        # --- NOUVEAUX BOUTONS DE SÉLECTION ---
+        col_sel_all, col_desel_all, col_spacer = st.columns([1, 1, 2])
+        if col_sel_all.button("✅ Tout sélectionner (visibles)"):
+            for d in filtered_data:
+                st.session_state.selection_active.add(d['id'])
+            st.rerun()
+        if col_desel_all.button("❌ Tout désélectionner"):
+            for d in filtered_data:
+                if d['id'] in st.session_state.selection_active:
+                    st.session_state.selection_active.remove(d['id'])
+            st.rerun()
+        # -------------------------------------
 
         count_sel = len(st.session_state.selection_active)
         
@@ -444,7 +466,8 @@ if selected_page == "📚 BIBLIOTHÈQUE":
                             e_ex = st.text_input("Exhumé par", value=row['exhume_par'])
                             e_im = st.file_uploader("Nouvelle image ?", type=['png', 'jpg'])
                         with e_c2:
-                            e_de = st.text_area("Description", value=row['description'])
+                            # MODIFICATION : Limite caractères + Compteur
+                            e_de = st.text_area("Description (Max 1500 caractères)", value=row['description'], max_chars=1500)
                             cur_cats = [c for c in row['categories'] if c in dynamic_cats_list]
                             e_ca = st.multiselect("Catégories", dynamic_cats_list, default=cur_cats)
                             e_qr = st.text_input("QR Link", value=row.get('url_qr',''))
@@ -503,7 +526,10 @@ elif selected_page == "➕ NOUVEAU CARTEL":
         with col_droite:
             titre = st.text_input("Titre (Obligatoire)")
             annee = st.text_input("Année", value="2025")
-        description = st.text_area("Description", height=150)
+        
+        # MODIFICATION : Limite caractères + Compteur
+        description = st.text_area("Description (Max 1500 caractères)", height=150, max_chars=1500)
+        
         c_cat, c_qr = st.columns(2)
         with c_cat:
             selected_cats = st.multiselect("Catégories", dynamic_cats_list)
@@ -540,7 +566,9 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
     with st.expander("➕ Ajouter une idée / un brouillon", expanded=False):
         with st.form("new_draft"):
             d_titre = st.text_input("Titre (Obligatoire)")
-            d_desc = st.text_area("Notes / Description")
+            # MODIFICATION : Limite caractères + Compteur
+            d_desc = st.text_area("Notes / Description (Max 1500 caractères)", max_chars=1500)
+            
             c_img_d, c_opt_d = st.columns([1, 2])
             with c_img_d:
                 d_img = st.file_uploader("Image (Optionnel)", type=['png', 'jpg'], key="draft_img")
@@ -585,7 +613,9 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
                         ed_an = st.text_input("Année", value=d_row.get('annee', ''))
                         ed_ex = st.text_input("Exhumé par", value=d_row.get('exhume_par', ''))
                         ed_im = st.file_uploader("Image", type=['png', 'jpg'])
-                        ed_de = st.text_area("Desc", value=d_row.get('description', ''))
+                        # MODIFICATION : Limite caractères + Compteur
+                        ed_de = st.text_area("Desc (Max 1500 caractères)", value=d_row.get('description', ''), max_chars=1500)
+                        
                         cur_cats = [c for c in d_row.get('categories', []) if c in dynamic_cats_list]
                         ed_ca = st.multiselect("Catégories", dynamic_cats_list, default=cur_cats)
                         ed_qr = st.text_input("QR Link", value=d_row.get('url_qr', ''))
