@@ -303,37 +303,34 @@ def generate_cartel_image(data):
     
     return img
 
-# --- PREVIEW HTML CORRIGÉE (SANS BUG) ---
-def afficher_cartel_visuel(data, is_draft=False):
-    c1, c2 = st.columns([1, 1])
-    with c1:
-        # Sécurité anti-crash image
-        try:
-            if data.get('image_path') and os.path.exists(data['image_path']):
-                st.image(data['image_path'], use_column_width=True)
-            else:
-                st.info("No Image")
-        except:
-            st.warning("Img Error")
+# --- PREVIEW HTML CORRIGÉE (SANS COLONNES IMBRIQUÉES) ---
+def afficher_infos_cartel(data, is_draft=False):
+    # Lien
+    link_html = ""
+    if data.get('url_qr'):
+        link_html = f'<div style="margin-top:15px; text-align:right;"><a href="{data["url_qr"]}" target="_blank" style="text-decoration:none; background-color:black; color:white; padding:5px 10px; border-radius:4px; font-family:sans-serif; font-size:0.8em;">🔗 LIEN</a></div>'
+    
+    # Badge
+    draft_badge = ""
+    if is_draft:
+        draft_badge = "<div style='background:gold; color:black; padding:5px; text-align:center; font-weight:bold; margin-bottom:10px;'>⚠️ BROUILLON</div>"
 
-        st.markdown(f"<div style='color:gray; font-size:0.8em;'>Exhumé par {data.get('exhume_par', '')}</div>", unsafe_allow_html=True)
-    with c2:
-        cats = " • ".join(data.get('categories', []))
-        
-        link_html = ""
-        if data.get('url_qr'):
-            link_html = f'<div style="margin-top:15px; text-align:right;"><a href="{data["url_qr"]}" target="_blank" style="text-decoration:none; background-color:black; color:white; padding:5px 10px; border-radius:4px; font-family:sans-serif; font-size:0.8em;">🔗 LIEN</a></div>'
-        
-        draft_badge = ""
-        if is_draft:
-            draft_badge = "<div style='background:gold; color:black; padding:5px; text-align:center; font-weight:bold; margin-bottom:10px;'>⚠️ BROUILLON</div>"
+    full_desc = data.get('description', '').replace('\n', '<br>')
+    cats = " • ".join(data.get('categories', []))
 
-        full_desc = data.get('description', '').replace('\n', '<br>')
-
-        # HTML COMPACT POUR ÉVITER LES BUGS D'INDENTATION
-        html_block = f"""<div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px; font-family: serif;">{draft_badge}<div style="text-align: right; font-weight: bold; font-size: 1.2em; font-family: sans-serif;">{data.get('annee', '')}</div><div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase; font-family: sans-serif;">{data.get('titre', '')}</div><div style="text-align: left;">{full_desc}</div><br><small style="font-family: sans-serif;">Catégories : {cats}</small>{link_html}</div>"""
-        
-        st.markdown(html_block, unsafe_allow_html=True)
+    # HTML COMPACT
+    html_block = f"""
+    <div style="background-color: {PINK_HEX}; padding: 20px; border-radius: 5px; color: black; min-height: 300px; font-family: serif;">
+        {draft_badge}
+        <div style="text-align: right; font-weight: bold; font-size: 1.2em; font-family: sans-serif;">{data.get('annee', '')}</div>
+        <div style="text-align: right; font-weight: bold; font-size: 1.5em; line-height: 1.1; margin-bottom: 20px; text-transform: uppercase; font-family: sans-serif;">{data.get('titre', '')}</div>
+        <div style="text-align: left;">{full_desc}</div>
+        <br>
+        <small style="font-family: sans-serif;">Catégories : {cats}</small>
+        {link_html}
+    </div>
+    """
+    st.markdown(html_block, unsafe_allow_html=True)
 
 # --- INIT DATA ---
 full_data = load_json(DATA_FILE)
@@ -464,59 +461,40 @@ if selected_page == "📚 BIBLIOTHÈQUE":
         st.divider()
         
         for row in filtered_data:
-            c_chk, c_vis, c_act = st.columns([0.1, 2, 0.4]) 
+            # === MODIFICATION MAJEURE : APLASTISSEMENT DES COLONNES ===
+            # Structure : Checkbox | Image | Texte | Actions
+            c_chk, c_img, c_txt, c_act = st.columns([0.1, 1, 1, 0.3]) 
+            
             with c_chk:
+                st.write("")
                 st.write("")
                 st.write("")
                 is_sel = row['id'] in st.session_state.selection_active
                 st.checkbox("", key=f"chk_{row['id']}", value=is_sel, on_change=toggle_selection, args=(row['id'],))
             
-            with c_vis:
-                afficher_cartel_visuel(row)
-                if st.session_state.editing_id == row['id']:
-                    st.markdown(f"<div class='edit-box'>Modification : <b>{row['titre']}</b></div>", unsafe_allow_html=True)
-                    with st.form(f"edit_form_{row['id']}"):
-                        e_c1, e_c2 = st.columns(2)
-                        with e_c1:
-                            e_ti = st.text_input("Titre", value=row['titre'])
-                            e_an = st.text_input("Année", value=row['annee'])
-                            e_ex = st.text_input("Exhumé par", value=row['exhume_par'])
-                            e_im = st.file_uploader("Nouvelle image ?", type=['png', 'jpg'])
-                        with e_c2:
-                            e_de = st.text_area("Description (Max 1500)", value=row['description'], max_chars=1500)
-                            cur_cats = [c for c in row['categories'] if c in dynamic_cats_list]
-                            e_ca = st.multiselect("Catégories", dynamic_cats_list, default=cur_cats)
-                            e_qr = st.text_input("QR Link", value=row.get('url_qr',''))
-                        
-                        col_save, col_cancel = st.columns([1, 1])
-                        with col_save:
-                            if st.form_submit_button("💾 SAUVEGARDER"):
-                                with st.spinner('Mise à jour...'):
-                                    n_path = row.get('image_path')
-                                    if e_im: n_path = save_image(e_im)
-                                    up_entry = row.copy()
-                                    up_entry.update({"titre":e_ti, "annee":e_an, "description":e_de, "exhume_par":e_ex, "categories":e_ca, "url_qr":e_qr, "image_path":n_path})
-                                    update_entry(up_entry, DATA_FILE)
-                                    st.session_state.editing_id = None
-                                    st.session_state.flash_msg = "✅ Modifié !"
-                                    set_page(0) 
-                                    st.rerun()
-                        with col_cancel:
-                            if st.form_submit_button("ANNULER"):
-                                st.session_state.editing_id = None
-                                st.rerun()
+            with c_img:
+                try:
+                    if row.get('image_path') and os.path.exists(row['image_path']):
+                        st.image(row['image_path'], use_column_width=True)
+                    else:
+                        st.info("No Image")
+                except:
+                    st.warning("Img Error")
+                st.markdown(f"<div style='color:gray; font-size:0.8em; text-align:center;'>Exhumé par {row.get('exhume_par', '')}</div>", unsafe_allow_html=True)
+
+            with c_txt:
+                afficher_infos_cartel(row) # Appel de la nouvelle fonction sans colonnes internes
 
             with c_act:
                 st.write("")
                 st.write("") 
-                act_edit, act_del = st.columns(2)
-                with act_edit:
-                    if st.button("✏️", key=f"btn_edit_{row['id']}", help="Modifier"):
-                        st.session_state.editing_id = row['id'] if st.session_state.editing_id != row['id'] else None
-                        st.rerun()
-                with act_del:
-                    if st.button("🗑️", key=f"btn_del_{row['id']}", help="Supprimer"):
-                        st.session_state[f"confirm_del_{row['id']}"] = True
+                
+                if st.button("✏️", key=f"btn_edit_{row['id']}", help="Modifier"):
+                    st.session_state.editing_id = row['id'] if st.session_state.editing_id != row['id'] else None
+                    st.rerun()
+                
+                if st.button("🗑️", key=f"btn_del_{row['id']}", help="Supprimer"):
+                    st.session_state[f"confirm_del_{row['id']}"] = True
                 
                 if st.session_state.get(f"confirm_del_{row['id']}"):
                     st.markdown("<small style='color:red;'>Supprimer ?</small>", unsafe_allow_html=True)
@@ -529,6 +507,40 @@ if selected_page == "📚 BIBLIOTHÈQUE":
                     if st.button("NON", key=f"no_del_{row['id']}"):
                         st.session_state[f"confirm_del_{row['id']}"] = False
                         st.rerun()
+            
+            # Formulaire d'édition (Hors des colonnes pour prendre toute la largeur)
+            if st.session_state.editing_id == row['id']:
+                st.markdown(f"<div class='edit-box'>Modification : <b>{row['titre']}</b></div>", unsafe_allow_html=True)
+                with st.form(f"edit_form_{row['id']}"):
+                    e_c1, e_c2 = st.columns(2)
+                    with e_c1:
+                        e_ti = st.text_input("Titre", value=row['titre'])
+                        e_an = st.text_input("Année", value=row['annee'])
+                        e_ex = st.text_input("Exhumé par", value=row['exhume_par'])
+                        e_im = st.file_uploader("Nouvelle image ?", type=['png', 'jpg'])
+                    with e_c2:
+                        e_de = st.text_area("Description (Max 1500)", value=row['description'], max_chars=1500)
+                        cur_cats = [c for c in row['categories'] if c in dynamic_cats_list]
+                        e_ca = st.multiselect("Catégories", dynamic_cats_list, default=cur_cats)
+                        e_qr = st.text_input("QR Link", value=row.get('url_qr',''))
+                    
+                    col_save, col_cancel = st.columns([1, 1])
+                    with col_save:
+                        if st.form_submit_button("💾 SAUVEGARDER"):
+                            with st.spinner('Mise à jour...'):
+                                n_path = row.get('image_path')
+                                if e_im: n_path = save_image(e_im)
+                                up_entry = row.copy()
+                                up_entry.update({"titre":e_ti, "annee":e_an, "description":e_de, "exhume_par":e_ex, "categories":e_ca, "url_qr":e_qr, "image_path":n_path})
+                                update_entry(up_entry, DATA_FILE)
+                                st.session_state.editing_id = None
+                                st.session_state.flash_msg = "✅ Modifié !"
+                                set_page(0) 
+                                st.rerun()
+                    with col_cancel:
+                        if st.form_submit_button("ANNULER"):
+                            st.session_state.editing_id = None
+                            st.rerun()
             st.divider()
 
 # === 2. CRÉATION ===
@@ -581,7 +593,6 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
     with st.expander("➕ Ajouter une idée / un brouillon", expanded=False):
         with st.form("new_draft"):
             d_titre = st.text_input("Titre (Obligatoire)")
-            # MODIFICATION : Limite caractères + Compteur
             d_desc = st.text_area("Notes / Description (Max 1500 caractères)", max_chars=1500)
             
             c_img_d, c_opt_d = st.columns([1, 2])
@@ -618,34 +629,23 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
         st.info("Aucun brouillon.")
     else:
         for d_row in drafts_data:
-            c_d_vis, c_d_act = st.columns([2, 1])
-            with c_d_vis:
-                afficher_cartel_visuel(d_row, is_draft=True)
-                if st.session_state.get(f"edit_draft_{d_row['id']}"):
-                    st.markdown(f"<div class='edit-box'>Édition Brouillon</div>", unsafe_allow_html=True)
-                    with st.form(f"form_edit_draft_{d_row['id']}"):
-                        ed_ti = st.text_input("Titre", value=d_row['titre'])
-                        ed_an = st.text_input("Année", value=d_row.get('annee', ''))
-                        ed_ex = st.text_input("Exhumé par", value=d_row.get('exhume_par', ''))
-                        ed_im = st.file_uploader("Image", type=['png', 'jpg'])
-                        # MODIFICATION : Limite caractères + Compteur
-                        ed_de = st.text_area("Desc (Max 1500 caractères)", value=d_row.get('description', ''), max_chars=1500)
-                        
-                        cur_cats = [c for c in d_row.get('categories', []) if c in dynamic_cats_list]
-                        ed_ca = st.multiselect("Catégories", dynamic_cats_list, default=cur_cats)
-                        ed_qr = st.text_input("QR Link", value=d_row.get('url_qr', ''))
-                        
-                        if st.form_submit_button("💾 METTRE À JOUR"):
-                            n_p = d_row.get('image_path')
-                            if ed_im: n_p = save_image(ed_im)
-                            up_dr = d_row.copy()
-                            up_dr.update({"titre":ed_ti, "annee":ed_an, "exhume_par":ed_ex, "description":ed_de, "categories":ed_ca, "url_qr":ed_qr, "image_path":n_p})
-                            update_entry(up_dr, DRAFTS_FILE, msg_prefix="Modif Brouillon")
-                            st.session_state[f"edit_draft_{d_row['id']}"] = False
-                            set_page(2) 
-                            st.rerun()
+            # === MODIFICATION MAJEURE : APLASTISSEMENT DES COLONNES ===
+            # Structure : Image | Texte | Actions
+            c_img, c_txt, c_act = st.columns([1, 1, 0.5])
+            
+            with c_img:
+                try:
+                    if d_row.get('image_path') and os.path.exists(d_row['image_path']):
+                        st.image(d_row['image_path'], use_column_width=True)
+                    else:
+                        st.info("No Image")
+                except: pass
+                st.caption(f"Exhumé par {d_row.get('exhume_par', '')}")
 
-            with c_d_act:
+            with c_txt:
+                afficher_infos_cartel(d_row, is_draft=True)
+
+            with c_act:
                 st.write("")
                 if st.button("🚀 PUBLIER EN BIBLIOTHÈQUE", key=f"pub_{d_row['id']}", use_container_width=True):
                     with st.spinner("Publication officielle..."):
@@ -654,15 +654,41 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
                     set_page(0) 
                     st.rerun()
                 st.write("")
-                c_edit, c_del = st.columns(2)
-                with c_edit:
+                
+                c_edit_btn, c_del_btn = st.columns(2)
+                with c_edit_btn:
                     if st.button("✏️", key=f"btn_ed_dr_{d_row['id']}", help="Modifier"):
                         st.session_state[f"edit_draft_{d_row['id']}"] = not st.session_state.get(f"edit_draft_{d_row['id']}", False)
                         set_page(2)
                         st.rerun()
-                with c_del:
+                with c_del_btn:
                     if st.button("🗑️", key=f"btn_del_dr_{d_row['id']}", help="Jeter"):
                         delete_entry(d_row['id'], DRAFTS_FILE, msg_prefix="Del Brouillon")
                         set_page(2)
                         st.rerun()
+            
+            # Formulaire d'édition Brouillon (Hors des colonnes)
+            if st.session_state.get(f"edit_draft_{d_row['id']}"):
+                st.markdown(f"<div class='edit-box'>Édition Brouillon</div>", unsafe_allow_html=True)
+                with st.form(f"form_edit_draft_{d_row['id']}"):
+                    ed_ti = st.text_input("Titre", value=d_row['titre'])
+                    ed_an = st.text_input("Année", value=d_row.get('annee', ''))
+                    ed_ex = st.text_input("Exhumé par", value=d_row.get('exhume_par', ''))
+                    ed_im = st.file_uploader("Image", type=['png', 'jpg'])
+                    ed_de = st.text_area("Desc (Max 1500 caractères)", value=d_row.get('description', ''), max_chars=1500)
+                    
+                    cur_cats = [c for c in d_row.get('categories', []) if c in dynamic_cats_list]
+                    ed_ca = st.multiselect("Catégories", dynamic_cats_list, default=cur_cats)
+                    ed_qr = st.text_input("QR Link", value=d_row.get('url_qr', ''))
+                    
+                    if st.form_submit_button("💾 METTRE À JOUR"):
+                        n_p = d_row.get('image_path')
+                        if ed_im: n_p = save_image(ed_im)
+                        up_dr = d_row.copy()
+                        up_dr.update({"titre":ed_ti, "annee":ed_an, "exhume_par":ed_ex, "description":ed_de, "categories":ed_ca, "url_qr":ed_qr, "image_path":n_p})
+                        update_entry(up_dr, DRAFTS_FILE, msg_prefix="Modif Brouillon")
+                        st.session_state[f"edit_draft_{d_row['id']}"] = False
+                        set_page(2) 
+                        st.rerun()
+
             st.divider()
