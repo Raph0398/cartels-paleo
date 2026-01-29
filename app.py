@@ -167,34 +167,56 @@ def get_year_for_sort(entry):
         return val
     return 9999
 
-# --- OUTILS DE TEXTE PIL ---
-def wrap_text_pixel(text, font, max_width, draw):
+# --- OUTILS DE TEXTE INTELLIGENT ---
+def wrap_text_dynamic(text, font, draw, width_full, width_narrow, y_start, y_cutout, line_height):
+    """
+    Découpe le texte en lignes en tenant compte d'un obstacle (QR Code).
+    Si la position Y courante dépasse y_cutout, la largeur dispo passe de width_full à width_narrow.
+    """
     lines = []
     paragraphs = text.split('\n')
+    
+    current_y = y_start
+    
     for paragraph in paragraphs:
         if not paragraph:
             lines.append("")
+            current_y += line_height
             continue
+            
         words = paragraph.split()
         if not words: continue
+        
         current_line = words[0]
+        
         for word in words[1:]:
+            # DÉTECTION INTELLIGENTE :
+            # Si on est plus bas que le début du QR code, on réduit la largeur max
+            current_max_width = width_narrow if current_y >= y_cutout else width_full
+            
             test_line = current_line + " " + word
             bbox = draw.textbbox((0, 0), test_line, font=font)
             w = bbox[2] - bbox[0]
-            if w <= max_width:
+            
+            if w <= current_max_width:
                 current_line = test_line
             else:
                 lines.append(current_line)
                 current_line = word
+                current_y += line_height
+        
         lines.append(current_line)
+        current_y += line_height
+        
     return lines
 
-# --- GENERATEUR IMAGE OPTIMISÉ ---
+# --- GENERATEUR IMAGE OPTIMISÉ (AVEC EVITEMENT QR) ---
 def generate_cartel_image(data):
     img = Image.new('RGB', (A4_WIDTH_PX, A4_HEIGHT_PX), color='white')
     draw = ImageDraw.Draw(img)
     mid_x = int(A4_WIDTH_PX / 2)
+    
+    # Fond Rose (Côté Droit)
     draw.rectangle([mid_x, 0, A4_WIDTH_PX, A4_HEIGHT_PX], fill=PINK_RGB)
     
     def load_font(name, size):
@@ -212,7 +234,7 @@ def generate_cartel_image(data):
 
     margin = int(15 * MM_TO_PX)
     
-    # IMAGE
+    # --- 1. GESTION IMAGE (GAUCHE) ---
     if data.get('image_path') and os.path.exists(data['image_path']):
         try:
             pil_img = Image.open(data['image_path'])
@@ -239,9 +261,25 @@ def generate_cartel_image(data):
     credit_y = int(185 * MM_TO_PX)
     draw.text((margin, credit_y), f"Exhumé par {data.get('exhume_par', '')}", font=font_credit, fill=(80, 80, 80))
 
-    # DROITE
+    # --- 2. CONFIGURATION DE L'ESPACE QR CODE (DROITE) ---
+    qr_size_px = int(35 * MM_TO_PX) # Taille du QR
+    qr_margin_buffer = 20 # Marge de sécurité autour du QR
+    
+    has_qr = bool(data.get('url_qr'))
+    
+    qr_x = A4_WIDTH_PX - margin - qr_size_px
+    qr_y = A4_HEIGHT_PX - margin - qr_size_px
+    
+    # Limite Y à partir de laquelle le texte doit devenir plus étroit
+    y_cutout_threshold = qr_y - qr_margin_buffer 
+
+    # --- 3. TEXTES (DROITE) ---
     text_x_start = mid_x + margin
-    text_width_limit = A4_WIDTH_PX - text_x_start - margin
+    # Largeur pleine (sans QR)
+    text_width_full = A4_WIDTH_PX - text_x_start - margin
+    # Largeur réduite (à côté du QR)
+    text_width_narrow = text_width_full - qr_size_px - qr_margin_buffer if has_qr else text_width_full
+
     current_y = int(15 * MM_TO_PX) 
 
     # Année
@@ -253,7 +291,8 @@ def generate_cartel_image(data):
 
     # Titre
     title_str = data.get('titre', '').upper()
-    title_lines = wrap_text_pixel(title_str, font_title, text_width_limit, draw)
+    # Le titre utilise toujours la largeur pleine (en haut)
+    title_lines = wrap_text_dynamic(title_str, font_title, draw, text_width_full, text_width_full, 0, 99999, 0)
     for line in title_lines:
         bbox = draw.textbbox((0, 0), line, font=font_title)
         line_w = bbox[2] - bbox[0]
@@ -261,10 +300,9 @@ def generate_cartel_image(data):
         current_y += font_title_size + 15
     current_y += 40
 
-    # Description (Auto-Fit)
+    # Description (Auto-Fit Intelligent avec contournement)
     desc_text = data.get('description', '')
-    footer_y_start = int(180 * MM_TO_PX)
-    available_height = footer_y_start - current_y - 20
+    page_bottom_limit = A4_HEIGHT_PX - margin 
     
     font_desc_size = font_body_base_size
     font_body = load_font("PTSerif-Regular.ttf", font_desc_size)
@@ -272,32 +310,47 @@ def generate_cartel_image(data):
     
     while font_desc_size > 20: 
         font_body = load_font("PTSerif-Regular.ttf", font_desc_size)
-        desc_lines = wrap_text_pixel(desc_text, font_body, text_width_limit, draw)
         line_height = font_desc_size + 15
+        
+        # On utilise le wrapper dynamique
+        desc_lines = wrap_text_dynamic(
+            desc_text, font_body, draw, 
+            text_width_full, text_width_narrow, 
+            current_y, y_cutout_threshold, line_height
+        )
+        
         total_text_height = len(desc_lines) * line_height
-        if total_text_height <= available_height:
+        if (current_y + total_text_height) <= page_bottom_limit:
             break 
         font_desc_size -= 2
     
+    # Dessin final description
+    line_height = font_desc_size + 15
     for line in desc_lines:
         draw.text((text_x_start, current_y), line, font=font_body, fill=(20, 20, 20))
-        current_y += font_desc_size + 15
+        current_y += line_height
 
-    # Footer
+    # --- 4. PIED DE PAGE & QR ---
+    current_y += 20 
     cats_str = " • ".join(data.get('categories', []))
-    cat_y = int(180 * MM_TO_PX)
-    draw.text((text_x_start, cat_y), f"Catégories : {cats_str}", font=font_cats, fill="black")
     
-    if data.get('url_qr'):
+    # Si on est arrivé au niveau du QR, on écrit les catégories à gauche
+    if current_y > y_cutout_threshold and has_qr:
+        cat_lines = wrap_text_dynamic(cats_str, font_cats, draw, text_width_narrow, text_width_narrow, 0, 99999, 0)
+        for line in cat_lines:
+            draw.text((text_x_start, current_y), f"Cat: {line}", font=font_cats, fill="black")
+            current_y += 45
+    else:
+        draw.text((text_x_start, current_y), f"Catégories : {cats_str}", font=font_cats, fill="black")
+
+    # Génération et collage du QR Code
+    if has_qr:
         try:
             qr = qrcode.QRCode(version=1, box_size=10, border=1)
             qr.add_data(data['url_qr'])
             qr.make(fit=True)
             qr_img = qr.make_image(fill_color="black", back_color=PINK_RGB)
-            qr_size_px = int(30 * MM_TO_PX)
             qr_img = qr_img.resize((qr_size_px, qr_size_px), Image.Resampling.NEAREST)
-            qr_x = A4_WIDTH_PX - margin - qr_size_px
-            qr_y = A4_HEIGHT_PX - margin - qr_size_px
             img.paste(qr_img, (qr_x, qr_y))
         except: pass
     
@@ -475,7 +528,6 @@ if selected_page == "📚 BIBLIOTHÈQUE":
             filtered_data = [d for d in full_data if any(cat in d['categories'] for cat in cat_filter)]
 
         # --- SELECTION MINIMALISTE ---
-        # Note: Grâce au CSS ci-dessus, ces boutons "standard" seront fins et discrets.
         col_sel_all, col_desel_all, col_spacer = st.columns([1, 1, 3])
         if col_sel_all.button("☑ TOUT SÉLECTIONNER"):
             for d in filtered_data:
