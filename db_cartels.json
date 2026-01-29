@@ -13,20 +13,6 @@
         "url_qr": ""
     },
     {
-        "id": "20260128233855",
-        "annee": "2010",
-        "titre": "Bla Bla",
-        "description": "Test",
-        "exhume_par": "Bob",
-        "categories": [
-            "H2O",
-            "Solaire",
-            "Avion"
-        ],
-        "image_path": "images_archive/IMG_3369.jpeg",
-        "date_ajout": "2026-01-28"
-    },
-    {
         "id": "20260129001916",
         "titre": "Glaoglao",
         "annee": "2000",
