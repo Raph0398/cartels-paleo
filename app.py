@@ -74,12 +74,11 @@ def save_image(uploaded_file):
 
 # --- AFFICHAGE VISUEL ---
 def afficher_cartel_visuel(data):
-    """Affiche le cartel visuellement dans l'app"""
+    """Affiche le cartel tel qu'il apparaîtra, pour vérification visuelle"""
     c1, c2 = st.columns([1, 1])
     
     with c1:
         if data['image_path'] and os.path.exists(data['image_path']):
-            # On simule le centrage vertical
             st.image(data['image_path'], use_column_width=True)
         else:
             st.warning("Image manquante")
@@ -96,12 +95,11 @@ def afficher_cartel_visuel(data):
             </div>
             <div style="margin-top: 30px;">
                 <small style="font-family: sans-serif; font-size: 0.9em;">Catégories : {cats}</small><br>
-                <b style="font-family: sans-serif; font-size: 1.1em;">← Pour aller plus loin</b>
-            </div>
+                </div>
         </div>
         """, unsafe_allow_html=True)
 
-# --- GÉNÉRATEUR PDF OPTIMISÉ ---
+# --- GÉNÉRATEUR PDF ---
 class PDF(FPDF):
     def __init__(self):
         super().__init__(orientation='L', unit='mm', format='A4')
@@ -124,7 +122,6 @@ class PDF(FPDF):
     def add_cartel_page(self, data):
         self.add_page()
         
-        # Dimensions Page
         W_PAGE = 297
         H_PAGE = 210
         MID = W_PAGE / 2
@@ -136,39 +133,33 @@ class PDF(FPDF):
         # 2. IMAGE (CALCUL INTELLIGENT DE LA TAILLE)
         if data['image_path'] and os.path.exists(data['image_path']):
             try:
-                # --- ZONE AUTORISÉE POUR L'IMAGE ---
-                # On définit une boîte stricte pour que l'image ne dépasse jamais
-                BOX_X = 15          # Marge gauche
-                BOX_Y = 30          # Marge haute
-                BOX_W = MID - 30    # Largeur dispo (Moitié page - 2x15 de marge)
-                BOX_H = 145         # Hauteur dispo (Pour s'arrêter avant le texte du bas)
+                BOX_X = 15
+                BOX_Y = 30
+                BOX_W = MID - 30
+                BOX_H = 145 
 
-                # Récupération taille réelle image
                 with Image.open(data['image_path']) as img:
                     orig_w, orig_h = img.size
                 
-                # Calcul du facteur de redimensionnement (pour tenir dans la boite)
                 ratio_w = BOX_W / orig_w
                 ratio_h = BOX_H / orig_h
-                scale = min(ratio_w, ratio_h) # On prend le ratio le plus restrictif
+                scale = min(ratio_w, ratio_h)
                 
                 new_w = orig_w * scale
                 new_h = orig_h * scale
 
-                # Centrage dans la zone autorisée
                 offset_x = (BOX_W - new_w) / 2
                 offset_y = (BOX_H - new_h) / 2
                 
                 final_x = BOX_X + offset_x
                 final_y = BOX_Y + offset_y
 
-                # Affichage de l'image redimensionnée et centrée
                 self.image(data['image_path'], x=final_x, y=final_y, w=new_w, h=new_h)
             except Exception as e:
                 print(f"Erreur image: {e}")
 
-        # 3. CRÉDIT (Bas Gauche) - Position fixe
-        self.set_xy(15, 185) # Position Y fixe en bas
+        # 3. CRÉDIT (Bas Gauche)
+        self.set_xy(15, 185)
         self.set_font(self.font_header, 'B', 10) 
         self.set_text_color(80, 80, 80)
         self.cell(100, 10, f"Exhumé par {data['exhume_par']}")
@@ -195,15 +186,13 @@ class PDF(FPDF):
         self.set_text_color(20, 20, 20)
         self.multi_cell(W_TEXT, 6, data['description'], align='L')
         
-        # 7. FOOTER (Catégories)
-        self.set_xy(X_TEXT, 180) # Position Y fixe en bas
+        # 7. FOOTER (Catégories SEULEMENT)
+        self.set_xy(X_TEXT, 180)
         self.set_font(self.font_header, '', 9)
         cats_str = " • ".join(data['categories'])
         self.cell(W_TEXT, 5, f"Catégories : {cats_str}", align='L', ln=True)
         
-        self.ln(1)
-        self.set_font(self.font_header, 'B', 10)
-        self.cell(W_TEXT, 5, "← Pour aller plus loin", align='L')
+        # NOTE : J'ai supprimé la flèche et le texte "Pour aller plus loin" ici.
 
 # --- INTERFACE ---
 st.title("⚡ PALEO-ÉNERGÉTIQUE")
@@ -249,6 +238,8 @@ with tab_create:
         st.subheader("2. Résultat final")
         if preview_data:
             afficher_cartel_visuel(preview_data)
+        elif 'last_preview' in st.session_state:
+             afficher_cartel_visuel(st.session_state.last_preview)
         else:
             st.info("Remplissez le formulaire à gauche.")
 
@@ -261,31 +252,39 @@ with tab_library:
         st.info("Aucune archive.")
     else:
         st.subheader(f"🗃️ Archives ({len(data)} fiches)")
+        st.caption("Cochez les cases puis cliquez sur 'Préparer le téléchargement'.")
         
-        selected_ids_in_form = []
-
-        with st.form("selection_form"):
-            for index, row in enumerate(data):
-                cols = st.columns([0.1, 2]) 
-                with cols[0]:
-                    st.write("") 
-                    st.write("")
-                    st.write("")
-                    if st.checkbox("", key=f"chk_{row['id']}"):
-                        selected_ids_in_form.append(row['id'])
-                
-                with cols[1]:
-                    afficher_cartel_visuel(row)
-                    st.divider()
+        # Initialisation de la session pour le PDF
+        if 'pdf_ready' not in st.session_state:
+            st.session_state['pdf_ready'] = False
+            st.session_state['pdf_bytes'] = None
+        
+        # Conteneur pour la liste (plus de st.form ici pour éviter les bugs de sélection)
+        for index, row in enumerate(data):
+            cols = st.columns([0.1, 2]) 
+            with cols[0]:
+                st.write("") 
+                st.write("")
+                st.write("")
+                # Checkbox simple qui garde son état
+                st.checkbox("", key=f"chk_{row['id']}")
+            with cols[1]:
+                afficher_cartel_visuel(row)
+                st.divider()
+        
+        # Bouton d'action
+        if st.button("PRÉPARER LE TÉLÉCHARGEMENT (PDF MULTI-PAGES)"):
+            # On récupère les IDs cochés
+            final_selection = []
+            for d in data:
+                if st.session_state.get(f"chk_{d['id']}"):
+                    final_selection.append(d)
             
-            submit_selection = st.form_submit_button("GÉNÉRER LE PDF AVEC LA SÉLECTION")
-
-        if submit_selection:
-            if not selected_ids_in_form:
-                st.warning("Veuillez cocher au moins un cartel.")
+            if not final_selection:
+                st.warning("Veuillez cocher au moins un cartel dans la liste ci-dessus.")
+                st.session_state['pdf_ready'] = False
             else:
-                final_selection = [d for d in data if d['id'] in selected_ids_in_form]
-                
+                # Génération
                 pdf = PDF()
                 for item in final_selection:
                     pdf.add_cartel_page(item)
@@ -294,12 +293,17 @@ with tab_library:
                     pdf_bytes = bytes(pdf.output())
                 except TypeError:
                     pdf_bytes = pdf.output(dest='S').encode('latin-1')
-
-                st.success(f"PDF généré avec {len(final_selection)} page(s) !")
                 
-                st.download_button(
-                    label=f"⬇️ TÉLÉCHARGER LE PDF ({len(final_selection)} PAGES)",
-                    data=pdf_bytes,
-                    file_name=f"Catalogue_Paleo_Export.pdf",
-                    mime="application/pdf"
-                )
+                st.session_state['pdf_bytes'] = pdf_bytes
+                st.session_state['pdf_ready'] = True
+                st.session_state['count_selection'] = len(final_selection)
+
+        # Affichage du bouton de téléchargement si prêt
+        if st.session_state['pdf_ready'] and st.session_state['pdf_bytes']:
+            st.success(f"✅ Fichier prêt contenant {st.session_state['count_selection']} cartel(s) !")
+            st.download_button(
+                label="⬇️ TÉLÉCHARGER LE PDF FINAL",
+                data=st.session_state['pdf_bytes'],
+                file_name=f"Catalogue_Paleo_Complet.pdf",
+                mime="application/pdf"
+            )
