@@ -37,7 +37,7 @@ st.markdown(f"""
     .stApp {{ background-color: #FAFAFA; font-family: 'PT Serif', serif; color: black; }}
     h1, h2, h3 {{ font-family: 'PT Sans Narrow', sans-serif !important; text-transform: uppercase; }}
     
-    .stTextInput input, .stTextArea textarea {{
+    .stTextInput input, .stTextArea textarea, .stMultiSelect {{
         background-color: {PINK_HEX} !important;
         color: black !important;
         border: 1px solid #E0B0B0;
@@ -49,7 +49,7 @@ st.markdown(f"""
         font-family: 'PT Sans Narrow', sans-serif;
         text-transform: uppercase;
         border-radius: 0px;
-        padding: 10px 20px;
+        padding: 5px 15px;
     }}
     div.stButton > button:hover {{
         background-color: #D65A5A;
@@ -72,6 +72,14 @@ def save_data(new_entry):
     with open(DATA_FILE, 'w') as f:
         json.dump(data, f, indent=4)
 
+def delete_data(cartel_id):
+    """Supprime un cartel de la base de données"""
+    data = load_data()
+    # On garde tout sauf celui qui a l'ID à supprimer
+    new_data = [d for d in data if d['id'] != cartel_id]
+    with open(DATA_FILE, 'w') as f:
+        json.dump(new_data, f, indent=4)
+
 def save_image(uploaded_file):
     if uploaded_file is not None:
         file_path = os.path.join(IMG_FOLDER, uploaded_file.name)
@@ -88,16 +96,11 @@ def toggle_selection(cartel_id):
 
 # --- FONCTION DE DESSIN (JPEG GENERATOR) ---
 def generate_cartel_image(data):
-    # 1. Création toile blanche A4 Paysage
     img = Image.new('RGB', (A4_WIDTH_PX, A4_HEIGHT_PX), color='white')
     draw = ImageDraw.Draw(img)
-    
-    # 2. Zone Rose (Moitié Droite)
     mid_x = int(A4_WIDTH_PX / 2)
     draw.rectangle([mid_x, 0, A4_WIDTH_PX, A4_HEIGHT_PX], fill=PINK_RGB)
     
-    # --- GESTION DES POLICES ---
-    # Facteur de taille : 300 DPI demande des polices bien plus grosses (approx x4 par rapport à l'écran)
     try:
         font_year = ImageFont.truetype("PTSansNarrow-Bold.ttf", 90)
         font_title = ImageFont.truetype("PTSansNarrow-Bold.ttf", 120)
@@ -105,90 +108,68 @@ def generate_cartel_image(data):
         font_credit = ImageFont.truetype("PTSansNarrow-Bold.ttf", 45)
         font_cats = ImageFont.truetype("PTSansNarrow-Regular.ttf", 40)
     except:
-        # Fallback si fichiers absents
         font_year = ImageFont.load_default()
         font_title = font_year
         font_body = font_year
         font_credit = font_year
         font_cats = font_year
 
-    # Marges en pixels (15mm ~ 177px)
     margin = int(15 * MM_TO_PX)
     
-    # --- PARTIE GAUCHE (IMAGE) ---
     if data['image_path'] and os.path.exists(data['image_path']):
         try:
             pil_img = Image.open(data['image_path'])
-            
-            # Zone dispo pour l'image
             box_x = margin
             box_y = int(30 * MM_TO_PX)
-            box_w = mid_x - (2 * margin) # ~148mm de large dispo
-            box_h = int(145 * MM_TO_PX)  # Hauteur contrainte
+            box_w = mid_x - (2 * margin)
+            box_h = int(145 * MM_TO_PX)
             
-            # Redimensionnement (Fit)
             img_ratio = pil_img.width / pil_img.height
             box_ratio = box_w / box_h
             
             if img_ratio > box_ratio:
-                # Image plus large que la boite
                 new_w = box_w
                 new_h = int(box_w / img_ratio)
             else:
-                # Image plus haute que la boite
                 new_h = box_h
                 new_w = int(box_h * img_ratio)
                 
             pil_img = pil_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
-            
-            # Centrage
             pos_x = box_x + (box_w - new_w) // 2
             pos_y = box_y + (box_h - new_h) // 2
-            
             img.paste(pil_img, (pos_x, pos_y))
         except Exception as e:
             print(f"Erreur image: {e}")
 
-    # Crédit (Bas Gauche)
     credit_y = int(185 * MM_TO_PX)
     draw.text((margin, credit_y), f"Exhumé par {data['exhume_par']}", font=font_credit, fill=(80, 80, 80))
 
-    # --- PARTIE DROITE (TEXTE) ---
     text_x_start = mid_x + margin
-    text_width_limit = mid_x - (2 * margin)
     
-    # 1. Année (Aligné droite)
     year_str = str(data['annee'])
-    # On utilise textbbox pour obtenir la taille
     bbox = draw.textbbox((0, 0), year_str, font=font_year)
     text_w = bbox[2] - bbox[0]
     draw.text((A4_WIDTH_PX - margin - text_w, int(25 * MM_TO_PX)), year_str, font=font_year, fill="black")
     
-    # 2. Titre (Aligné droite + Multi-lignes si trop long)
     title_str = data['titre'].upper()
-    # Wrapping simple du titre (environ 15 chars par ligne pour cette taille de police)
     title_lines = textwrap.wrap(title_str, width=18) 
     current_y = int(50 * MM_TO_PX)
-    
     for line in title_lines:
         bbox = draw.textbbox((0, 0), line, font=font_title)
         line_w = bbox[2] - bbox[0]
         line_h = bbox[3] - bbox[1]
         draw.text((A4_WIDTH_PX - margin - line_w, current_y), line, font=font_title, fill="black")
-        current_y += line_h + 20 # Espacement interligne
+        current_y += line_h + 20
     
-    current_y += 60 # Marge après titre
+    current_y += 60
 
-    # 3. Description (Aligné gauche + Wrapping)
-    # Environ 45 caractères par ligne pour la police body
     desc_lines = textwrap.wrap(data['description'], width=50)
     for line in desc_lines:
         draw.text((text_x_start, current_y), line, font=font_body, fill=(20, 20, 20))
         bbox = draw.textbbox((0, 0), line, font=font_body)
         line_h = bbox[3] - bbox[1]
-        current_y += line_h + 15 # Espacement
+        current_y += line_h + 15
 
-    # 4. Catégories (Bas Droite, Aligné Gauche)
     cats_str = " • ".join(data['categories'])
     cat_y = int(180 * MM_TO_PX)
     draw.text((text_x_start, cat_y), f"Catégories : {cats_str}", font=font_cats, fill="black")
@@ -255,12 +236,11 @@ with tab_create:
         st.subheader("2. Résultat")
         if preview_data:
             afficher_cartel_visuel(preview_data)
-        elif 'last_preview' in st.session_state: # Astuce pour garder l'affichage
+        elif 'last_preview' in st.session_state:
              afficher_cartel_visuel(st.session_state.last_preview)
 
 # === ONGLET 2 : BIBLIOTHÈQUE ===
 with tab_library:
-    # Init Session pour sélection
     if 'selection_active' not in st.session_state:
         st.session_state.selection_active = set()
 
@@ -270,36 +250,45 @@ with tab_library:
     if not data:
         st.info("Aucune archive.")
     else:
-        count = len(st.session_state.selection_active)
-        st.subheader(f"🗃️ Archives - {count} sélectionné(s)")
+        # --- FILTRES ---
+        all_cats_recorded = set()
+        for d in data:
+            for c in d['categories']:
+                all_cats_recorded.add(c)
+        
+        st.markdown("### Filtres")
+        cat_filter = st.multiselect("Filtrer par catégorie", sorted(list(all_cats_recorded)))
+        
+        # Application du filtre
+        filtered_data = data
+        if cat_filter:
+            filtered_data = [d for d in data if any(cat in d['categories'] for cat in cat_filter)]
+
+        count_total = len(filtered_data)
+        count_sel = len(st.session_state.selection_active)
+        
+        st.subheader(f"🗃️ Liste ({count_total} affichés) - {count_sel} sélectionné(s)")
         
         # --- BOUTON D'EXPORT ---
-        if st.button(f"GÉNÉRER LE ZIP ({count} IMAGES)"):
-            if count == 0:
+        if st.button(f"GÉNÉRER LE ZIP ({count_sel} IMAGES)"):
+            if count_sel == 0:
                 st.error("Sélectionnez au moins un cartel.")
             else:
+                # On ne prend que ceux qui sont dans la sélection active
                 final_selection = [d for d in data if d['id'] in st.session_state.selection_active]
                 
-                # Création du ZIP en mémoire
                 zip_buffer = io.BytesIO()
                 with zipfile.ZipFile(zip_buffer, "w") as zf:
                     progress_bar = st.progress(0)
                     for i, item in enumerate(final_selection):
-                        # Génération de l'image
                         img = generate_cartel_image(item)
-                        
-                        # Sauvegarde image en mémoire
                         img_byte_arr = io.BytesIO()
                         img.save(img_byte_arr, format='JPEG', quality=95)
-                        
-                        # Ajout au ZIP
                         filename = f"Cartel_{item['titre'].replace(' ','_')}_{item['id']}.jpg"
                         zf.writestr(filename, img_byte_arr.getvalue())
-                        
                         progress_bar.progress((i + 1) / len(final_selection))
                 
                 st.success("✅ ZIP généré avec succès !")
-                
                 st.download_button(
                     label="⬇️ TÉLÉCHARGER LE DOSSIER ZIP",
                     data=zip_buffer.getvalue(),
@@ -308,14 +297,33 @@ with tab_library:
                 )
 
         st.divider()
-        # Liste avec Checkbox en temps réel
-        for row in data:
-            cols = st.columns([0.1, 2]) 
+        
+        # Liste Filtrée
+        for row in filtered_data:
+            # Layout: Checkbox | Visuel | Actions (Supprimer)
+            cols = st.columns([0.2, 2, 0.5]) 
+            
             with cols[0]:
                 st.write("")
                 st.write("")
                 is_selected = row['id'] in st.session_state.selection_active
                 st.checkbox("", key=f"chk_{row['id']}", value=is_selected, on_change=toggle_selection, args=(row['id'],))
+            
             with cols[1]:
                 afficher_cartel_visuel(row)
-                st.divider()
+            
+            with cols[2]:
+                st.write("")
+                st.write("")
+                # Bouton de suppression avec confirmation
+                if st.button("🗑️", key=f"del_{row['id']}", help="Supprimer ce cartel"):
+                    st.session_state[f"confirm_del_{row['id']}"] = True
+                
+                # Zone de confirmation qui apparaît si on a cliqué sur la poubelle
+                if st.session_state.get(f"confirm_del_{row['id']}"):
+                    st.warning("Sûr ?")
+                    if st.button("Confirmer", key=f"yes_del_{row['id']}"):
+                        delete_data(row['id'])
+                        st.rerun()
+            
+            st.divider()
