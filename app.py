@@ -357,11 +357,33 @@ st.title("⚡ PALEO-ÉNERGÉTIQUE")
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&family=PT+Serif:wght@400;700&display=swap');
+    
     .stApp {{ background-color: #FAFAFA; font-family: 'PT Serif', serif; color: black; }}
     h1, h2, h3 {{ font-family: 'PT Sans Narrow', sans-serif !important; text-transform: uppercase; }}
-    .stTextInput input, .stTextArea textarea, .stMultiSelect {{ background-color: {PINK_HEX} !important; color: black !important; border: 1px solid #E0B0B0; }}
-    div.stButton > button {{ background-color: black; color: white; font-family: 'PT Sans Narrow', sans-serif; text-transform: uppercase; border-radius: 4px; padding: 5px 15px; border: none; }}
-    div.stButton > button:hover {{ background-color: #D65A5A; color: white; }}
+    
+    .stTextInput input, .stTextArea textarea, .stMultiSelect {{
+        background-color: {PINK_HEX} !important;
+        color: black !important;
+        border: 1px solid #E0B0B0;
+    }}
+    
+    /* STYLE DES BOUTONS REVU - MINIMALISTE */
+    div.stButton > button {{
+        background-color: transparent;
+        color: black;
+        border: 2px solid black;
+        border-radius: 0px; /* Angles droits */
+        font-family: 'PT Sans Narrow', sans-serif;
+        text-transform: uppercase;
+        padding: 5px 15px;
+        transition: all 0.2s;
+    }}
+    div.stButton > button:hover {{
+        background-color: black;
+        color: white;
+        border-color: black;
+    }}
+    
     div[data-testid="column"] button {{ width: 100%; }}
     .edit-box {{ border: 2px solid #D65A5A; padding: 15px; border-radius: 5px; background-color: white; margin-top: 10px; }}
     div[role="radiogroup"] {{ flex-direction: row; width: 100%; justify-content: center; }}
@@ -386,9 +408,9 @@ if selected_page == "📚 BIBLIOTHÈQUE":
         if cat_filter:
             filtered_data = [d for d in full_data if any(cat in d['categories'] for cat in cat_filter)]
 
-        # --- NOUVEAUX BOUTONS DE SÉLECTION ---
+        # BOUTONS SELECTION
         col_sel_all, col_desel_all, col_spacer = st.columns([1, 1, 2])
-        if col_sel_all.button("✅ Tout sélectionner (visibles)"):
+        if col_sel_all.button("✅ Tout sélectionner"):
             for d in filtered_data:
                 st.session_state.selection_active.add(d['id'])
             st.rerun()
@@ -397,7 +419,6 @@ if selected_page == "📚 BIBLIOTHÈQUE":
                 if d['id'] in st.session_state.selection_active:
                     st.session_state.selection_active.remove(d['id'])
             st.rerun()
-        # -------------------------------------
 
         count_sel = len(st.session_state.selection_active)
         
@@ -425,13 +446,13 @@ if selected_page == "📚 BIBLIOTHÈQUE":
 
         with col_del_bulk:
             if count_sel > 0:
-                if st.button("🗑️ SUPPRIMER SÉLECTION", type="primary", use_container_width=True):
+                if st.button("🗑️ SUPPRIMER SÉLECTION", use_container_width=True):
                     st.session_state.confirm_bulk_del = True
         
         if st.session_state.confirm_bulk_del:
             st.warning("Attention : Suppression définitive.")
             col_y, col_n = st.columns(2)
-            if col_y.button("CONFIRMER", type="primary", key="conf_bulk"):
+            if col_y.button("CONFIRMER SUPPRESSION", key="conf_bulk"):
                 with st.spinner('Suppression...'):
                     for id_to_del in list(st.session_state.selection_active):
                         delete_entry(id_to_del, DATA_FILE)
@@ -466,15 +487,14 @@ if selected_page == "📚 BIBLIOTHÈQUE":
                             e_ex = st.text_input("Exhumé par", value=row['exhume_par'])
                             e_im = st.file_uploader("Nouvelle image ?", type=['png', 'jpg'])
                         with e_c2:
-                            # MODIFICATION : Limite caractères + Compteur
-                            e_de = st.text_area("Description (Max 1500 caractères)", value=row['description'], max_chars=1500)
+                            e_de = st.text_area("Description (Max 1500)", value=row['description'], max_chars=1500)
                             cur_cats = [c for c in row['categories'] if c in dynamic_cats_list]
                             e_ca = st.multiselect("Catégories", dynamic_cats_list, default=cur_cats)
                             e_qr = st.text_input("QR Link", value=row.get('url_qr',''))
                         
                         col_save, col_cancel = st.columns([1, 1])
                         with col_save:
-                            if st.form_submit_button("💾 Sauvegarder"):
+                            if st.form_submit_button("💾 SAUVEGARDER"):
                                 with st.spinner('Mise à jour...'):
                                     n_path = row.get('image_path')
                                     if e_im: n_path = save_image(e_im)
@@ -486,7 +506,7 @@ if selected_page == "📚 BIBLIOTHÈQUE":
                                     set_page(0) 
                                     st.rerun()
                         with col_cancel:
-                            if st.form_submit_button("Annuler"):
+                            if st.form_submit_button("ANNULER"):
                                 st.session_state.editing_id = None
                                 st.rerun()
 
@@ -527,7 +547,6 @@ elif selected_page == "➕ NOUVEAU CARTEL":
             titre = st.text_input("Titre (Obligatoire)")
             annee = st.text_input("Année", value="2025")
         
-        # MODIFICATION : Limite caractères + Compteur
         description = st.text_area("Description (Max 1500 caractères)", height=150, max_chars=1500)
         
         c_cat, c_qr = st.columns(2)
@@ -536,7 +555,7 @@ elif selected_page == "➕ NOUVEAU CARTEL":
             new_cat = st.text_input("Autre catégorie (Ajout)")
         with c_qr:
             url_qr = st.text_input("Lien QR Code (Optionnel)")
-        submit_create = st.form_submit_button("ENREGISTRER LE CARTEL", type="primary")
+        submit_create = st.form_submit_button("ENREGISTRER LE CARTEL")
 
     if submit_create:
         if not titre:
@@ -577,7 +596,7 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
                 d_new_cat = st.text_input("Autre catégorie (Ajout)", key="draft_new_cat")
                 d_qr = st.text_input("Lien QR Code (Optionnel)", key="draft_qr")
             
-            d_submit = st.form_submit_button("Sauvegarder le brouillon")
+            d_submit = st.form_submit_button("SAUVEGARDER BROUILLON")
             
             if d_submit:
                 if not d_titre:
@@ -620,7 +639,7 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
                         ed_ca = st.multiselect("Catégories", dynamic_cats_list, default=cur_cats)
                         ed_qr = st.text_input("QR Link", value=d_row.get('url_qr', ''))
                         
-                        if st.form_submit_button("💾 Mettre à jour"):
+                        if st.form_submit_button("💾 METTRE À JOUR"):
                             n_p = d_row.get('image_path')
                             if ed_im: n_p = save_image(ed_im)
                             up_dr = d_row.copy()
@@ -632,7 +651,7 @@ elif selected_page == "💡 IDÉES & BROUILLONS":
 
             with c_d_act:
                 st.write("")
-                if st.button("🚀 PUBLIER EN BIBLIOTHÈQUE", key=f"pub_{d_row['id']}", type="primary", use_container_width=True):
+                if st.button("🚀 PUBLIER EN BIBLIOTHÈQUE", key=f"pub_{d_row['id']}", use_container_width=True):
                     with st.spinner("Publication officielle..."):
                         publish_draft(d_row['id'])
                     st.session_state.flash_msg = f"🎉 '{d_row['titre']}' est maintenant publié !"
