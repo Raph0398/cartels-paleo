@@ -4,7 +4,6 @@ import json
 import os
 import zipfile
 import io
-import textwrap
 import qrcode
 import re
 from datetime import datetime
@@ -134,26 +133,53 @@ def toggle_selection(cartel_id):
     else:
         st.session_state.selection_active.add(cartel_id)
 
-# --- FONCTION DE TRI AMÉLIORÉE (GÈRE LES NÉGATIFS) ---
+# --- FONCTION DE CONVERSION ROMAIN -> ENTIER ---
+def roman_to_int(s):
+    roman = {'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000}
+    num = 0
+    try:
+        s = s.upper()
+        for i in range(len(s) - 1):
+            if roman[s[i]] < roman[s[i + 1]]:
+                num -= roman[s[i]]
+            else:
+                num += roman[s[i]]
+        num += roman[s[-1]]
+        return num
+    except:
+        return 0
+
+# --- FONCTION DE TRI AVANCÉE (CHIFFRES, ROMAINS, AVANT JC) ---
 def get_year_for_sort(entry):
-    # On met tout en minuscule pour l'analyse
-    annee_text = str(entry.get('annee', '9999')).lower().strip()
+    text = str(entry.get('annee', '9999')).lower().strip()
     
-    # Détection des mots clés "avant Jésus-Christ"
-    is_bc = 'av' in annee_text or 'bc' in annee_text or 'bef' in annee_text
+    # 1. Détection Antiquité (Avant JC)
+    # On regarde si ça contient "av", "bc", ou un signe moins
+    is_bc = 'av' in text or 'bc' in text or 'bef' in text or text.startswith('-')
     
-    # Recherche du premier nombre (positif ou négatif)
-    # Le regex r'-?\d+' capture le signe moins s'il est collé au chiffre
-    match = re.search(r'-?\d+', annee_text)
-    
-    if match:
-        val = int(match.group())
-        # Si on a détecté "av. JC" mais que le chiffre est positif, on le rend négatif
-        if is_bc and val > 0:
-            val = -val
+    # 2. Recherche de chiffres Arabes (ex: 1850, -300)
+    match_digit = re.search(r'\d+', text)
+    if match_digit:
+        val = int(match_digit.group())
+        # Si c'est marqué "av. JC", on rend le chiffre négatif
+        if is_bc: 
+            val = -abs(val)
         return val
-        
-    return 9999 # Si pas de date, on met à la fin
+
+    # 3. Recherche de chiffres Romains (ex: XVII, xix)
+    # Regex qui cherche des séquences de lettres romaines isolées
+    match_roman = re.search(r'(?i)\b[mdclxvi]+\b', text)
+    if match_roman:
+        # On convertit le chiffre romain (ex: XVII -> 17)
+        val = roman_to_int(match_roman.group())
+        # On multiplie par 100 pour avoir une année approximative (XVII -> 1700)
+        val = val * 100
+        if is_bc:
+            val = -abs(val)
+        return val
+
+    # 4. Par défaut (fin de liste)
+    return 9999
 
 # --- GENERATEUR IMAGE ---
 def generate_cartel_image(data):
@@ -312,7 +338,6 @@ for entry in full_data + drafts_data:
         categories_pool.add(c)
 dynamic_cats_list = sorted(list(categories_pool))
 
-# TRI CHRONOLOGIQUE
 full_data.sort(key=get_year_for_sort)
 drafts_data.sort(key=lambda x: x.get('date', ''), reverse=True)
 
