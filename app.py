@@ -4,6 +4,7 @@ import json
 import os
 import zipfile
 import io
+import textwrap
 import qrcode
 import re
 from datetime import datetime
@@ -133,11 +134,26 @@ def toggle_selection(cartel_id):
     else:
         st.session_state.selection_active.add(cartel_id)
 
+# --- FONCTION DE TRI AMÉLIORÉE (GÈRE LES NÉGATIFS) ---
 def get_year_for_sort(entry):
-    annee_text = str(entry.get('annee', '9999'))
+    # On met tout en minuscule pour l'analyse
+    annee_text = str(entry.get('annee', '9999')).lower().strip()
+    
+    # Détection des mots clés "avant Jésus-Christ"
+    is_bc = 'av' in annee_text or 'bc' in annee_text or 'bef' in annee_text
+    
+    # Recherche du premier nombre (positif ou négatif)
+    # Le regex r'-?\d+' capture le signe moins s'il est collé au chiffre
     match = re.search(r'-?\d+', annee_text)
-    if match: return int(match.group())
-    return 9999
+    
+    if match:
+        val = int(match.group())
+        # Si on a détecté "av. JC" mais que le chiffre est positif, on le rend négatif
+        if is_bc and val > 0:
+            val = -val
+        return val
+        
+    return 9999 # Si pas de date, on met à la fin
 
 # --- GENERATEUR IMAGE ---
 def generate_cartel_image(data):
@@ -271,7 +287,7 @@ def afficher_cartel_visuel(data, is_draft=False):
         if is_draft:
             draft_badge = "<div style='background:gold; color:black; padding:5px; text-align:center; font-weight:bold; margin-bottom:10px;'>⚠️ BROUILLON</div>"
 
-        # Traitement du texte pour affichage complet et respect des sauts de ligne
+        # Traitement du texte pour affichage complet
         full_description = data.get('description', '').replace('\n', '<br>')
 
         st.markdown(f"""
@@ -296,6 +312,7 @@ for entry in full_data + drafts_data:
         categories_pool.add(c)
 dynamic_cats_list = sorted(list(categories_pool))
 
+# TRI CHRONOLOGIQUE
 full_data.sort(key=get_year_for_sort)
 drafts_data.sort(key=lambda x: x.get('date', ''), reverse=True)
 
