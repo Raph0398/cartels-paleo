@@ -9,6 +9,7 @@ import qrcode
 import re
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
+from github import Github, InputGitTreeElement # Nouvelle librairie pour sauvegarder
 
 # --- CONFIGURATION INITIALE ---
 st.set_page_config(page_title="Paleo Maker", layout="wide", initial_sidebar_state="collapsed")
@@ -24,74 +25,73 @@ A4_WIDTH_PX = 3508
 A4_HEIGHT_PX = 2480
 MM_TO_PX = A4_WIDTH_PX / 297
 
-# Création des dossiers
+# Création des dossiers locaux
 if not os.path.exists(IMG_FOLDER):
     os.makedirs(IMG_FOLDER)
 if not os.path.exists(DATA_FILE):
     with open(DATA_FILE, 'w') as f:
         json.dump([], f)
 
-# --- STYLE CSS ---
-st.markdown(f"""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&family=PT+Serif:wght@400;700&display=swap');
-    
-    .stApp {{ background-color: #FAFAFA; font-family: 'PT Serif', serif; color: black; }}
-    h1, h2, h3 {{ font-family: 'PT Sans Narrow', sans-serif !important; text-transform: uppercase; }}
-    
-    .stTextInput input, .stTextArea textarea, .stMultiSelect {{
-        background-color: {PINK_HEX} !important;
-        color: black !important;
-        border: 1px solid #E0B0B0;
-    }}
-    
-    /* Boutons standards (Noir) */
-    div.stButton > button {{
-        background-color: black;
-        color: white;
-        font-family: 'PT Sans Narrow', sans-serif;
-        text-transform: uppercase;
-        border-radius: 4px;
-        padding: 5px 15px;
-        border: none;
-        transition: 0.2s;
-    }}
-    div.stButton > button:hover {{
-        background-color: #D65A5A;
-        color: white;
-    }}
-
-    /* Boutons d'action spécifiques (Petits et discrets) */
-    div[data-testid="column"] button {{
-        width: 100%;
-    }}
-    
-    /* Zone d'édition active */
-    .edit-box {{
-        border: 2px solid #D65A5A;
-        padding: 15px;
-        border-radius: 5px;
-        background-color: white;
-        margin-top: 10px;
-    }}
-</style>
-""", unsafe_allow_html=True)
+# --- FONCTION DE SAUVEGARDE GITHUB (CLOUD) ---
+def push_to_github(file_path, content_bytes=None, message="Mise à jour automatique"):
+    """Envoie un fichier vers GitHub pour le rendre permanent"""
+    # On vérifie si les secrets sont configurés (pour éviter de planter en local si pas configuré)
+    if "GITHUB_TOKEN" in st.secrets and "GITHUB_REPO" in st.secrets:
+        try:
+            g = Github(st.secrets["GITHUB_TOKEN"])
+            repo = g.get_repo(st.secrets["GITHUB_REPO"])
+            
+            # Si content_bytes est None, on lit le fichier local
+            if content_bytes is None:
+                with open(file_path, 'rb') as f:
+                    content_bytes = f.read()
+            
+            # On essaie de récupérer le fichier s'il existe déjà (pour update)
+            try:
+                contents = repo.get_contents(file_path)
+                repo.update_file(contents.path, message, content_bytes, contents.sha)
+                # print(f"GitHub: {file_path} mis à jour.")
+            except:
+                # Sinon on le crée
+                repo.create_file(file_path, message, content_bytes)
+                # print(f"GitHub: {file_path} créé.")
+            return True
+        except Exception as e:
+            st.error(f"Erreur de sauvegarde GitHub : {e}")
+            return False
+    else:
+        # Si on est en local sans secrets, on ne fait rien (juste sauvegarde locale)
+        return False
 
 # --- FONCTIONS UTILITAIRES ---
 def load_data():
-    with open(DATA_FILE, 'r') as f:
-        try:
-            return json.load(f)
-        except json.JSONDecodeError:
-            return []
+    # Au démarrage, on pourrait idéalement télécharger le JSON depuis GitHub 
+    # pour être sûr d'avoir la dernière version, mais pour l'instant on lit le local.
+    # Si l'app redémarre, Streamlit remet les fichiers du repo, donc le JSON sera à jour.
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, 'r') as f:
+            try:
+                return json.load(f)
+            except json.JSONDecodeError:
+                return []
+    return []
 
 def save_data(new_entry):
+    # 1. Sauvegarde Locale
     data = load_data()
     data.append(new_entry)
     with open(DATA_FILE, 'w') as f:
         json.dump(data, f, indent=4)
+    
+    # 2. Sauvegarde Cloud (JSON)
+    push_to_github(DATA_FILE, message=f"Ajout cartel: {new_entry['titre']}")
+    
+    # 3. Sauvegarde Cloud (Image)
+    if new_entry.get('image_path') and os.path.exists(new_entry['image_path']):
+        push_to_github(new_entry['image_path'], message=f"Ajout image: {new_entry['titre']}")
 
 def update_data(updated_entry):
+    # 1. Update Local
     data = load_data()
     for i, d in enumerate(data):
         if d['id'] == updated_entry['id']:
@@ -99,12 +99,23 @@ def update_data(updated_entry):
             break
     with open(DATA_FILE, 'w') as f:
         json.dump(data, f, indent=4)
+        
+    # 2. Update Cloud
+    push_to_github(DATA_FILE, message=f"Modif cartel: {updated_entry['titre']}")
+    # Si l'image a changé, on la push aussi
+    if updated_entry.get('image_path') and os.path.exists(updated_entry['image_path']):
+         push_to_github(updated_entry['image_path'], message=f"Modif image: {updated_entry['titre']}")
 
 def delete_data(cartel_id):
+    # 1. Delete Local
     data = load_data()
+    # On trouve le cartel pour savoir s'il y a une image à supprimer (optionnel, on garde l'image par sécurité)
     new_data = [d for d in data if d['id'] != cartel_id]
     with open(DATA_FILE, 'w') as f:
         json.dump(new_data, f, indent=4)
+    
+    # 2. Update Cloud (On met à jour le JSON pour retirer l'entrée)
+    push_to_github(DATA_FILE, message=f"Suppression cartel ID {cartel_id}")
 
 def save_image(uploaded_file):
     if uploaded_file is not None:
@@ -293,16 +304,17 @@ with tab_create:
         if not titre:
             st.error("Le titre est obligatoire.")
         else:
-            final_cats = selected_cats + ([new_cat] if new_cat else [])
-            img_path = save_image(uploaded_file)
-            entry = {
-                "id": datetime.now().strftime("%Y%m%d%H%M%S"),
-                "titre": titre, "annee": annee, "description": description,
-                "exhume_par": exhume_par, "categories": final_cats,
-                "url_qr": url_qr, "image_path": img_path, "date": datetime.now().strftime("%Y-%m-%d")
-            }
-            save_data(entry)
-            st.success("✅ Cartel enregistré !")
+            with st.spinner('Sauvegarde vers GitHub...'): # Feedback visuel
+                final_cats = selected_cats + ([new_cat] if new_cat else [])
+                img_path = save_image(uploaded_file)
+                entry = {
+                    "id": datetime.now().strftime("%Y%m%d%H%M%S"),
+                    "titre": titre, "annee": annee, "description": description,
+                    "exhume_par": exhume_par, "categories": final_cats,
+                    "url_qr": url_qr, "image_path": img_path, "date": datetime.now().strftime("%Y-%m-%d")
+                }
+                save_data(entry)
+            st.success("✅ Cartel enregistré et sécurisé sur GitHub !")
             st.rerun()
 
 # === ONGLET 2 : BIBLIOTHÈQUE ===
@@ -313,7 +325,6 @@ with tab_library:
     if not full_data:
         st.info("Aucune archive.")
     else:
-        # Filtres
         st.markdown("### Filtres & Actions")
         cat_filter = st.multiselect("Filtrer par catégorie", dynamic_cats_list)
         filtered_data = full_data
@@ -344,9 +355,7 @@ with tab_library:
 
         st.divider()
         
-        # Liste
         for row in filtered_data:
-            # Layout : Checkbox (petit) | Visuel (Grand) | Actions (Moyen)
             c_chk, c_vis, c_act = st.columns([0.1, 2, 0.4]) 
             
             with c_chk:
@@ -358,7 +367,6 @@ with tab_library:
             with c_vis:
                 afficher_cartel_visuel(row)
                 
-                # Zone d'édition (Apparaît sous le visuel si activé)
                 if st.session_state.editing_id == row['id']:
                     st.markdown(f"<div class='edit-box'>Modification : <b>{row['titre']}</b></div>", unsafe_allow_html=True)
                     with st.form(f"edit_form_{row['id']}"):
@@ -377,11 +385,12 @@ with tab_library:
                         col_save, col_cancel = st.columns([1, 1])
                         with col_save:
                             if st.form_submit_button("💾 Sauvegarder"):
-                                n_path = row.get('image_path')
-                                if e_im: n_path = save_image(e_im)
-                                up_entry = row.copy()
-                                up_entry.update({"titre":e_ti, "annee":e_an, "description":e_de, "exhume_par":e_ex, "categories":e_ca, "url_qr":e_qr, "image_path":n_path})
-                                update_data(up_entry)
+                                with st.spinner('Mise à jour sur GitHub...'):
+                                    n_path = row.get('image_path')
+                                    if e_im: n_path = save_image(e_im)
+                                    up_entry = row.copy()
+                                    up_entry.update({"titre":e_ti, "annee":e_an, "description":e_de, "exhume_par":e_ex, "categories":e_ca, "url_qr":e_qr, "image_path":n_path})
+                                    update_data(up_entry)
                                 st.session_state.editing_id = None
                                 st.success("Modifié !")
                                 st.rerun()
@@ -390,33 +399,26 @@ with tab_library:
                                 st.session_state.editing_id = None
                                 st.rerun()
 
-            # Colonne Actions (Boutons côte à côte)
             with c_act:
                 st.write("")
-                st.write("") # Espacement pour aligner verticalement
-                
-                # Sous-colonnes pour alignement horizontal serré
+                st.write("") 
                 act_edit, act_del = st.columns(2)
-                
                 with act_edit:
-                    # Bouton Crayon (Toggle Edit Mode)
                     if st.button("✏️", key=f"btn_edit_{row['id']}", help="Modifier"):
                         if st.session_state.editing_id == row['id']:
                             st.session_state.editing_id = None
                         else:
                             st.session_state.editing_id = row['id']
                         st.rerun()
-                
                 with act_del:
-                    # Bouton Poubelle
                     if st.button("🗑️", key=f"btn_del_{row['id']}", help="Supprimer"):
                         st.session_state[f"confirm_del_{row['id']}"] = True
                 
-                # Zone de confirmation suppression (Apparaît dessous si cliqué)
                 if st.session_state.get(f"confirm_del_{row['id']}"):
                     st.markdown("<small style='color:red; font-weight:bold;'>Supprimer ?</small>", unsafe_allow_html=True)
                     if st.button("OUI", key=f"yes_del_{row['id']}"):
-                        delete_data(row['id'])
+                        with st.spinner('Suppression sur GitHub...'):
+                            delete_data(row['id'])
                         st.rerun()
                     if st.button("NON", key=f"no_del_{row['id']}"):
                         st.session_state[f"confirm_del_{row['id']}"] = False
