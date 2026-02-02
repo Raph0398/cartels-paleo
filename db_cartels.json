@@ -469,5 +469,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3538.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202164929",
+        "titre": "QUARTIERS R\u00c9G\u00c9N\u00c9RATIFS EN GESTION DE L\u2019EAU",
+        "annee": "XXI si\u00e8cle",
+        "description": "Les quartiers r\u00e9g\u00e9n\u00e9ratifs sont des espaces urbains con\u00e7us pour produire, capter, recycler et r\u00e9utiliser leur propre eau, r\u00e9duisant ainsi leur d\u00e9pendance aux r\u00e9seaux d\u2019approvisionnement classiques. Inspir\u00e9s des principes de l\u2019\u00e9conomie circulaire et du biomim\u00e9tisme, ces projets int\u00e8grent des infrastructures intelligentes permettant une gestion locale et durable des ressources hydriques.\n\nD\u00e9velopp\u00e9s d\u00e8s les ann\u00e9es 2010, ces quartiers combinent des toitures v\u00e9g\u00e9talis\u00e9es et syst\u00e8mes de r\u00e9cup\u00e9ration des eaux pluviales, de phyto \u00e9puration et filtration naturelle, des b\u00e2timents \u00e0 consommation d\u2019eau optimis\u00e9e, Stockage et r\u00e9utilisation des eaux grises et noires sur place.\n\nDes initiatives pionni\u00e8res comme Waternet \u00e0 Amsterdam, les districts autonomes de Singapour ou encore les \u00e9coquartiers en Allemagne et aux \u00c9tats-Unis d\u00e9montrent qu\u2019une ville capable de g\u00e9rer ses propres cycles de l\u2019eau est non seulement possible, mais constitue une solution d\u2019avenir face au changement climatique et \u00e0 la rar\u00e9faction des ressources en eau.",
+        "exhume_par": "Simona Iliycheva",
+        "categories": [
+            "Agriculture",
+            "H2O"
+        ],
+        "url_qr": "",
+        "image_path": null,
+        "date": "2026-02-02"
     }
 ]
