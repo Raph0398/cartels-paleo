@@ -109,5 +109,19 @@
         "url_qr": "https://whc.unesco.org/en/list/1506/",
         "image_path": "images_archive/IMG_3511.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202155832",
+        "titre": "L'ING\u00c9NIERIE HYDRAULIQUE ROMAINE",
+        "annee": "IV av J.C",
+        "description": "L\u2019ing\u00e9nierie hydraulique romaine constitue l\u2019un des fondements techniques de l\u2019expansion urbaine et agricole de l\u2019Empire. Les Romains ont con\u00e7u un r\u00e9seau complexe d\u2019ouvrages permettant la captation, le transport, le stockage et la distribution de l\u2019eau \u00e0 grande \u00e9chelle. \n\nParmi les dispositifs embl\u00e9matiques figurent les aqueducs gravitaires (certains longs de plus de 100 km) acheminant l\u2019eau depuis les sources jusqu\u2019aux cit\u00e9s. Celles-ci \u00e9taient ensuite desservies par un maillage de canalisations, de r\u00e9servoirs (castella), de fontaines, de thermes, mais aussi de syst\u00e8mes d\u2019irrigation. \nL\u2019usage du b\u00e9ton romain (opus caementicium) et l\u2019invention du specus vo\u00fbt\u00e9 ont permis une grande durabilit\u00e9 des structures. L\u2019expertise hydraulique s\u2019\u00e9tendait \u00e9galement aux \u00e9gouts, aux barrages (comme celui de Subiaco) et aux roues hydrauliques.\n\nCette ing\u00e9nierie, \u00e0 la fois pragmatique et sophistiqu\u00e9e, reposait sur une compr\u00e9hension fine des topographies et des \u00e9coulements. Elle a durablement influenc\u00e9 les infrastructures hydrauliques europ\u00e9ennes jusqu\u2019\u00e0 l\u2019\u00e9poque moderne.\n",
+        "exhume_par": "C\u00e9dric Carles",
+        "categories": [
+            "Agriculture",
+            "H2O"
+        ],
+        "url_qr": "",
+        "image_path": null,
+        "date": "2026-02-02"
     }
 ]
