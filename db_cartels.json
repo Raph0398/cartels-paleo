@@ -95,5 +95,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3510.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202155715",
+        "titre": "LES QANATS",
+        "annee": "VI av. J.-C.",
+        "description": "Les qanats sont des syst\u00e8mes d\u2019irrigation souterrains d\u00e9velopp\u00e9s il y a plus de 2 000 ans en Iran, au Moyen-Orient et en Afrique du Nord. Ce proc\u00e9d\u00e9 permet d\u2019acheminer l\u2019eau des nappes phr\u00e9atiques vers les zones habit\u00e9es et agricoles sans pompage ni perte excessive par \u00e9vaporation.\n\nCe syst\u00e8me repose sur un r\u00e9seau de galeries souterraines inclin\u00e9es, creus\u00e9es \u00e0 la main, qui collectent l\u2019eau et la guident par gravit\u00e9 sur de longues distances. Il permet d\u2019alimenter les villes et les cultures, m\u00eame dans des r\u00e9gions arides, en minimisant les pertes et en \u00e9vitant la surexploitation des ressources.\n\nAujourd\u2019hui, certaines communaut\u00e9s utilisent encore les qanats, et leur principe inspire de nouvelles approches en gestion durable de l\u2019eau. Des projets contemporains s\u2019appuient sur cette technologie pour favoriser une distribution \u00e9cologique et r\u00e9siliente des ressources en eau, notamment dans les r\u00e9gions touch\u00e9es par la s\u00e9cheresse.",
+        "exhume_par": "Simona Iliycheva",
+        "categories": [
+            "H2O",
+            "Agriculture"
+        ],
+        "url_qr": "https://whc.unesco.org/en/list/1506/",
+        "image_path": "images_archive/IMG_3511.jpeg",
+        "date": "2026-02-02"
     }
 ]
