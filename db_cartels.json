@@ -81,5 +81,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3402.jpeg",
         "date": "2026-01-29"
+    },
+    {
+        "id": "20260202155541",
+        "titre": "JOHAD, SYST\u00c8ME DE COLLECTE DES PLUIES",
+        "annee": "1500 av J.-C.",
+        "description": "Les johads sont de petits barrages en terre construits \u00e0 travers des canaux saisonniers pour capter et stocker les eaux de pluie durant la mousson. L'eau ainsi collect\u00e9e s'infiltre progressivement dans le sol, rechargeant les nappes phr\u00e9atiques et assurant une disponibilit\u00e9 en eau pour les puits, l'irrigation agricole et les besoins domestiques tout au long de l'ann\u00e9e. Ce syst\u00e8me a \u00e9t\u00e9 largement utilis\u00e9 dans des r\u00e9gions arides telles que le Rajasthan, contribuant \u00e0 la r\u00e9silience des communaut\u00e9s face aux s\u00e9cheresses.\n\nCes syst\u00e8mes sont construits avec des mat\u00e9riaux locaux tels que la terre et la pierre, en utilisant des techniques accessibles aux communaut\u00e9s rurales. Ils renforcent les ressources en eau locales sans d\u00e9pendre de technologies modernes ou d'infrastructures co\u00fbteuses. En am\u00e9liorant la recharge des nappes phr\u00e9atiques, ces solutions soutiennent l\u2019agriculture locale et contribuent \u00e0 limiter l\u2019exode rural en assurant la s\u00e9curit\u00e9 hydrique.",
+        "exhume_par": "Loic Rogard",
+        "categories": [
+            "H2O",
+            "Agriculture"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3510.jpeg",
+        "date": "2026-02-02"
     }
 ]
