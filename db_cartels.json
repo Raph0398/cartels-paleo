@@ -274,5 +274,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3524.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202163443",
+        "titre": "DRAINAGE DU PLATEAU DE SACLAY",
+        "annee": "1880",
+        "description": "\u00c0 la fin du XIXe si\u00e8cle, le plateau de Saclay est profond\u00e9ment transform\u00e9 par un vaste r\u00e9seau de rigoles d\u2019irrigation et de drainage, mis en place vers 1880. Ce dispositif vise \u00e0 \u00e9vacuer l\u2019eau exc\u00e9dentaire des sols argileux, longtemps mar\u00e9cageux et impropres \u00e0 l\u2019agriculture intensive. \n\nLe syst\u00e8me repose sur un r\u00e9seau de rigoles collectant les eaux de ruissellement, qui sont ensuite achemin\u00e9es vers l\u2019\u00e9tang de Saclay, jouant un r\u00f4le de r\u00e9gulateur hydraulique. \nCette infrastructure prolonge un projet plus ancien : celui du XVIIe si\u00e8cle orchestr\u00e9 par Vauban et La Quintinie pour acheminer l\u2019eau jusqu\u2019aux jardins des Tuileries et de Versailles via le plateau.\n\nLe r\u00e9seau de rigoles, toujours visible aujourd\u2019hui, t\u00e9moigne d\u2019une approche territoriale de l\u2019hydraulique, m\u00ealant am\u00e9nagement agricole, gestion durable de l\u2019eau et ing\u00e9nierie gravitaire. \n\nIl a permis de rendre fertiles des terres autrefois inexploitables, soutenant la vocation agricole du plateau jusqu\u2019\u00e0 nos jours.\n",
+        "exhume_par": "Rapha\u00ebl Luciani-Galais",
+        "categories": [
+            "Agriculture",
+            "H2O"
+        ],
+        "url_qr": "https://www.saclay.fr/wp-content/uploads/2022/08/dossier-patrimoine-etangs-rigoles-plateau-saclay.pdf",
+        "image_path": "images_archive/IMG_3525.jpeg",
+        "date": "2026-02-02"
     }
 ]
