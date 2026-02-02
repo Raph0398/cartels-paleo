@@ -288,5 +288,19 @@
         "url_qr": "https://www.saclay.fr/wp-content/uploads/2022/08/dossier-patrimoine-etangs-rigoles-plateau-saclay.pdf",
         "image_path": "images_archive/IMG_3525.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202163554",
+        "titre": "POMPES-\u00c9OLIENNES EN CAMARGUE",
+        "annee": "1880",
+        "description": "\u00ab Dieu cr\u00e9a le monde, \u00e0 l\u2019exception de la Hollande qui fut cr\u00e9\u00e9e par les Hollandais \u00bb\u2026 avec l\u2019aide du vent. Huit mille moulins, des digues sans fin b\u00e2ties contre la mer, des canaux pour \u00e9vacuer l\u2019eau pomp\u00e9e des terres salines : ainsi les Hollandais ont agrandi leur pays sur la mer.\n\nAu d\u00e9but du XXe si\u00e8cle, na\u00eet l\u2019id\u00e9e que la Camargue mar\u00e9cageuse et la Crau aride peuvent \u00eatre rendues fertiles, l\u2019une par ass\u00e8chement, l\u2019autre par irrigation. Et pourquoi pas avec des turbines \u00e9oliennes de pompage ? C\u2019est le projet d\u2019un Fran\u00e7ais, Louis Constantin, pionnier des \u00e9oliennes modernes.\n\nL\u2019immense \u00ab polder \u00bb fran\u00e7ais est pr\u00eat : l\u2019\u00e9tang de Vaccar\u00e8s (23 000 ha) peut \u00eatre ass\u00e9ch\u00e9 aux 3/4, le reste servant de r\u00e9ceptacle aux eaux sal\u00e9es et douces. Pour la Crau, il s\u2019agit de pomper les eaux souterraines de la Durance, \u00e0 deux m\u00e8tres de profondeur.\n\nMais en 1927, l\u2019\u00e9tang de Vaccar\u00e8s est finalement prot\u00e9g\u00e9 par la cr\u00e9ation de la R\u00e9serve zoologique et botanique de Camargue.",
+        "exhume_par": "Rapha\u00ebl Luciani-Galais",
+        "categories": [
+            "H2O",
+            "Agriculture"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3526.jpeg",
+        "date": "2026-02-02"
     }
 ]
