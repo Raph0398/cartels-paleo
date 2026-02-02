@@ -455,5 +455,19 @@
         "url_qr": "https://www.instructables.com/Gravity-Irrigated-Planter/",
         "image_path": "images_archive/IMG_3537.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202164837",
+        "titre": "LES B\u00c2TIMENTS \u201c\u00c9PONGES\u201d",
+        "annee": "XXI si\u00e8cle",
+        "description": "Les b\u00e2timents \u00ab \u00e9ponges \u00bb sont des constructions con\u00e7ues pour absorber, stocker et redistribuer l\u2019eau de mani\u00e8re intelligente, s\u2019adaptant ainsi aux variations climatiques et aux risques d\u2019inondation. Ce concept repose sur l\u2019utilisation de mat\u00e9riaux poreux, de toitures et fa\u00e7ades v\u00e9g\u00e9talis\u00e9es, ainsi que de bassins de r\u00e9tention int\u00e9gr\u00e9s aux infrastructures urbaines.\n\nD\u00e9velopp\u00e9 dans les ann\u00e9es 2010, notamment en Chine avec le programme des \u00ab Sponge Cities \u00bb, ce mod\u00e8le d\u2019urbanisme vise \u00e0 r\u00e9duire le ruissellement et am\u00e9liorer la r\u00e9silience des villes face aux \u00e9pisodes de fortes pluies. Des pays comme Singapour et les Pays-Bas ont \u00e9galement int\u00e9gr\u00e9 cette approche \u00e0 leurs strat\u00e9gies d\u2019am\u00e9nagement. \n\nCes b\u00e2timents repr\u00e9sentent une r\u00e9ponse aux d\u00e9fis pos\u00e9s par l\u2019urbanisation croissante et le changement climatique, en favorisant une utilisation plus efficace et durable de l\u2019eau dans l\u2019espace urbain.",
+        "exhume_par": "Simona Iliycheva",
+        "categories": [
+            "H2O",
+            "Agriculture"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3538.jpeg",
+        "date": "2026-02-02"
     }
 ]
