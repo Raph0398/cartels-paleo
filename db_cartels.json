@@ -540,5 +540,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3543.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202165534",
+        "titre": "MARCELLE, L\u2019URINOIR F\u00c9MININ POUR L\u2019ENGRAIS",
+        "annee": "2018",
+        "description": "Con\u00e7u par la designeuse Louise Raguet, Marcelle est un urinoir adapt\u00e9 \u00e0 l'anatomie des femmes pour faire pipi sans toucher la cuvettes des toilettes et sans \u00e9claboussures. Il permet l'\u00e9conomie de 6 litres d'eau par utilisation et r\u00e9duit consid\u00e9rablement les files d'attente aux toilettes pour femmes.\n\nL\u2019urinoir est accompagn\u00e9 de signal\u00e9tique pour sa bonne utilisation. Une poubelle assortie est d\u00e9di\u00e9e au papier toilette. Marcelle est 100% fabriqu\u00e9 en France, \u00e0 Troyes. En acier inox peint, c\u2019est un objet durable et facile d'entretien.\n\nL\u2019urinoir f\u00e9minin est destin\u00e9 aux toilettes des lieux publics : salles de concert, centre commercial, etc mais aussi aux festivals. Il a \u00e9t\u00e9 install\u00e9 \u00e0 Paris (Grands Voisins, 14\u00e8me), \u00e0 Bruxelles (Tri Postal), \u00e0 Trelins (Foreztival), \u00e0 Puget-sur-Argens (Mas des \u00c9caravatiers)...\n\nL\u2019urine r\u00e9colt\u00e9e et ensuite valoris\u00e9e sous forme d\u2019engrais. L'utilisation de l'urine en agriculture permet de limiter la pollution des cours d'eau et de r\u00e9duire la consommation d'engrais chimiques dans les champs.",
+        "exhume_par": "Simon Bouchaudy",
+        "categories": [
+            "H2O",
+            "Agriculture"
+        ],
+        "url_qr": "https://urinoirmarcelle.fr/",
+        "image_path": "images_archive/IMG_3544.jpeg",
+        "date": "2026-02-02"
     }
 ]
