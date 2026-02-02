@@ -247,5 +247,19 @@
         "url_qr": "https://www.tourisme93.com/invention-jardins-ouvriers.html",
         "image_path": "images_archive/IMG_3522.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202163226",
+        "titre": "LA G\u00c9OTHERMIE DE FRAN\u00c7OIS LARDEREL ",
+        "annee": "1818",
+        "description": "Qu\u2019est-ce que la g\u00e9othermie ? Elle d\u00e9signe l\u2019\u00e9nergie issue de la Terre convertie en chaleur. La chaleur circule \u00e0 travers un fluide (ici de l\u2019eau) qui traverse les profondeurs de la Terre et remonte ainsi l\u2019eau charg\u00e9e de calories (ou \u00e9nergie thermique). Cette \u00e9nergie thermique est alors utilis\u00e9e directement ou convertie en \u00e9lectricit\u00e9.\n\nLa premi\u00e8re utilisation de la g\u00e9othermie a lieu en Italie. En 1818, l\u2019industriel Fran\u00e7ois Larderel a l\u2019id\u00e9e de recouvrir les \u00e9tangs de Montecerboli d\u2019une cloche en pierre afin d\u2019extraire du bore. Les vapeurs s\u2019en \u00e9manant sont capt\u00e9es vers des chaudi\u00e8res en cuivre cr\u00e9ant la formation d\u2019un d\u00e9p\u00f4t d\u2019acide borique extrait des boues.\n\nCette extraction fait la fortune du jeune entrepreneur qui utilise \u00e0 cette occasion, pour la premi\u00e8re fois, la g\u00e9othermie \u00e0 \u00e9chelle industrielle.\n\nDe 1832 \u00e0 1842, Fran\u00e7ois Larderel effectue des forages afin de r\u00e9cup\u00e9rer directement les gaz surchauff\u00e9s des sous-sols et ainsi augmenter le d\u00e9bit pour le chauffage des fours de son industrie, parvenant m\u00eame \u00e0 produire de l\u2019\u00e9lectricit\u00e9.\n\nEn 2012, la g\u00e9othermie repr\u00e9sente 16% de la consommation \u00e9nerg\u00e9tique en Ile de France et l\u2019ann\u00e9e suivante cette \u00e9nergie alimente l\u2019\u00e9quivalent de 187 000 logements, soit plus de 240 000 tonnes de CO2 \u00e9vit\u00e9es annuellement !\n",
+        "exhume_par": "Fr\u00e9d\u00e9ric Caille",
+        "categories": [
+            "H2O",
+            "\u00c9nergie"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3523.jpeg",
+        "date": "2026-02-02"
     }
 ]
