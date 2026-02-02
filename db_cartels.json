@@ -165,5 +165,19 @@
         "url_qr": "Les acequias, anciens canaux d'irrigation m\u00e9di\u00e9vaux en Espagne, sont restaur\u00e9s pour lutter contre la s\u00e9cheresse due aux changements climatiques.  Creus\u00e9es par les Maures entre le VIIIe et le Xe si\u00e8cle, ces infrastructures permettent de ralentir l'\u00e9coulement de l'eau et de la stocker dans les nappes phr\u00e9atiques, aidant ainsi \u00e0 irriguer les cultures durant les p\u00e9riodes s\u00e8ches.  En Andalousie, des b\u00e9n\u00e9voles et des chercheurs travaillent \u00e0 remettre en \u00e9tat ces syst\u00e8mes, soulignant leur importance historique et \u00e9cologique pour la r\u00e9gion.",
         "image_path": "images_archive/IMG_3515.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202162147",
+        "titre": "CHINAMPA - LES JARDINS FLOTTANTS",
+        "annee": "XIII si\u00e8cles",
+        "description": "La technique du chinampa est d\u2019origine pr\u00e9colombienne, utilis\u00e9e par les Azt\u00e8ques d\u00e8s le XIIIe si\u00e8cle jusqu\u2019\u00e0 la conqu\u00eate (XIIIe\u2013XVIe si\u00e8cles).\n\nElle consiste \u00e0 cr\u00e9er des \u00eelots artificiels sur des plans d\u2019eau via un r\u00e9seau de canaux. La boue, riche en nutriments, extraite de ces canaux, \u00e9tait utilis\u00e9e pour fertiliser les \u00eelots, qui d\u00e9passaient d\u2019un m\u00e8tre la surface de l\u2019eau. Les semis \u00e9taient pr\u00e9par\u00e9s avec un m\u00e9lange de boue et de feuillage, et des arbres plant\u00e9s en bordure limitaient l\u2019\u00e9rosion.\n\nCe syst\u00e8me, combinant sols naturellement enrichis et gestion optimale de l\u2019eau, permettait des r\u00e9coltes abondantes sur de petites surfaces.\n\nReposant sur des mat\u00e9riaux et processus naturels, sans \u00e9quipements \u00e9nergivores, le chinampa valorise efficacement des ressources locales. Aujourd\u2019hui, face \u00e0 l\u2019urbanisation, il offre une solution low-tech pour am\u00e9nager des espaces cultivables en ville et soutenir l\u2019approvisionnement alimentaire.",
+        "exhume_par": "Cindy Fiorentino",
+        "categories": [
+            "H2O",
+            "Agriculture"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3516.jpeg",
+        "date": "2026-02-02"
     }
 ]
