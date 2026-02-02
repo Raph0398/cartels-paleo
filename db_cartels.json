@@ -359,5 +359,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3530.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202164153",
+        "titre": "HYDROLIENNE \u00c0 PARACHUTES DE G\u00c9RALD ERWIN STEELMAN",
+        "annee": "1975",
+        "description": "Inspir\u00e9 de la water wheel de Patric Henretty (Brevet 1899), Gerald Erwin Steelman propose en 1975 une cha\u00eene de parachutes qui permet de collecter l'\u00e9nergie cin\u00e9tique de l'eau dans un fleuve ou dans la mer. Contrairement aux dispositifs \u00e0 portance (lift) comme les \u00e9oliennes ou hydroliennes \u00e0 h\u00e9lices, celui-ci fonctionne gr\u00e2ce \u00e0 la force de tra\u00een\u00e9e (drag) qui est beaucoup plus adapt\u00e9e aux courants de faibles vitesses. Tr\u00e8s adapt\u00e9 aux m\u00e9thodes d'autoconstruction, cet appareil peut \u00eatre embarqu\u00e9 \u00e0 bord d'un bateau \u00e0 voile pour atteindre une autonomie \u00e9lectrique. La densit\u00e9 de l'eau en fait une ressource \u00e9nerg\u00e9tique concentr\u00e9e (1000 fois plus que l'air \u00e0 vitesse \u00e9quivalente), cette ressource est potentiellement beaucoup plus stable dans le temps que le vent ou le soleil.",
+        "exhume_par": "L\u00e9o B\u00e9nichou",
+        "categories": [
+            "H2O",
+            "\u00c9nergie"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3531.jpeg",
+        "date": "2026-02-02"
     }
 ]
