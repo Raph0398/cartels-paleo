@@ -554,5 +554,19 @@
         "url_qr": "https://urinoirmarcelle.fr/",
         "image_path": "images_archive/IMG_3544.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202165629",
+        "titre": "R\u00c9SERVOIR DE FA\u00c7ADE RE\u00cbSTOK",
+        "annee": "2019",
+        "description": "Le r\u00e9servoir de fa\u00e7ade Re\u00ebnstok, con\u00e7u par le Studio Faltazi, est un dispositif innovant de collecte et de stockage des eaux pluviales, install\u00e9 pour la premi\u00e8re fois en juillet 2019 au 2 rue Louis Blanc, Paris 10\u1d49. \n\nRempla\u00e7ant les descentes d'eau pluviale traditionnelles, ce syst\u00e8me se compose de modules en inox bross\u00e9 superposables, permettant de collecter l'eau de pluie directement sur les fa\u00e7ades des immeubles. L'eau ainsi r\u00e9cup\u00e9r\u00e9e est utilis\u00e9e pour l'arrosage des espaces verts adjacents, tels que les jardins partag\u00e9s, contribuant \u00e0 une gestion durable des ressources en eau en milieu urbain. \n\nCes r\u00e9servoirs jouent un r\u00f4le de r\u00e9gulateur en absorbant les surplus d'eau lors des orages et en diff\u00e9rant leur utilisation pendant les p\u00e9riodes s\u00e8ches, soutenant ainsi le Plan Parispluie. Apr\u00e8s cette premi\u00e8re installation, un second r\u00e9servoir a \u00e9t\u00e9 mis en place en 2020 rue Delesseux, dans le 19\u1d49 arrondissement de Paris.",
+        "exhume_par": "Cedric Carles",
+        "categories": [
+            "Agriculture",
+            "H2O"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3545.jpeg",
+        "date": "2026-02-02"
     }
 ]
