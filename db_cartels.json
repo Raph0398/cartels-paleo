@@ -317,5 +317,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3527.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202163820",
+        "titre": "LE B\u00c9LIER-SIPHON DE BIARRITZ DE PAUL GRASSET",
+        "annee": "1930",
+        "description": "Au cap Saint-Martin, aux pieds du phare de Biarritz, un \u00e9trange cylindre de b\u00e9ton affronte les assauts de l\u2019oc\u00e9an. Il abrita, dans les ann\u00e9es 30, un \u00ab b\u00e9lier-siphon maritime \u00e0 chambre barom\u00e9trique \u00bb con\u00e7u par l\u2019ing\u00e9nieur civil Paul Grasset pour produire de l\u2019\u00e9lectricit\u00e9 \u00e0 partir de l\u2019\u00e9nergie des vagues. Voici comment l\u2019ing\u00e9nieur d\u00e9crit son proc\u00e9d\u00e9 destin\u00e9 \u00e0 fournir \u00ab une \u00e9nergie illimit\u00e9e, nuit et jour, sans emploi de combustible \u00bb : \u00ab Cet appareil tient \u00e0 la fois du B\u00e9lier hydraulique de Montgolfier, du Siphon et du barom\u00e8tre \u00e0 colonne liquide, \u00e9quilibr\u00e9e par la pression atmosph\u00e9rique. Le r\u00e9servoir barom\u00e9trique sert \u00e0 la fois d\u2019accumulateur de l\u2019\u00e9nergie, de r\u00e9gulateur de la hauteur de chute et de distributeur permanent d\u2019eau dans les turbines. Les deux colonnes, la premi\u00e8re munie d\u2019un clapet, la seconde comportant des turbines, sont en \u00e9quilibre entre elles. R\u00e9unies par l\u2019eau du r\u00e9servoir, elles constituent un siphon \u00e0 branches \u00e9gales. Toutes les 10 secondes environ, l\u2019impulsion venant de la mer soul\u00e8ve la colonne d\u2019eau de la branche ascendante, rompant ainsi l\u2019\u00e9quilibre et permettant l\u2019\u00e9coulement \u00e0 travers les turbines de la branche descendante. Toutes les impulsions fortes ou faibles d\u00e9s\u00e9quilibrent le siphon et sont donc efficaces !\u201d",
+        "exhume_par": "Guillaume Tixier",
+        "categories": [
+            "H2O",
+            "\u00c9nergie"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3528.jpeg",
+        "date": "2026-02-02"
     }
 ]
