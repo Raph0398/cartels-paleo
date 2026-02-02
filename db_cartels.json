@@ -373,5 +373,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3531.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202164256",
+        "titre": "RETOUR AU \u00ab TASSA \u00bb POUR RESTAURER LA FERTILIT\u00c9",
+        "annee": "1989",
+        "description": "La technique ancestrale du tassa consiste \u00e0 creuser des trous de 10 \u00e0 40 cm de diam\u00e8tre et de 10 \u00e0 25 cm de profondeur, dispos\u00e9s en quinconce \u00e0 intervalles r\u00e9guliers d\u2019environ 80 cm. Ces poches captent l\u2019eau de pluie, r\u00e9duisent le ruissellement et l\u2019\u00e9rosion, et conservent l\u2019humidit\u00e9. En y ajoutant du compost ou du fumier, on stimule l\u2019activit\u00e9 des termites, qui am\u00e9liorent la structure et la fertilit\u00e9 du sol. Vulgaris\u00e9e dans les ann\u00e9es 1990 par des projets de d\u00e9veloppement agricole, cette m\u00e9thode a multipli\u00e9 par plus de deux les rendements. Peu co\u00fbteuse, adapt\u00e9e aux conditions locales et reproductible, elle donne de bonne perspectives \u00e0 des terre r\u00e9put\u00e9 comme peu fertile..",
+        "exhume_par": "Rapha\u00ebl Luciani-Galais",
+        "categories": [
+            "H2O",
+            "Agriculture"
+        ],
+        "url_qr": "https://sciences2d.wordpress.com/2013/06/10/le-tassa-fait-le-bonheur-des-paysans-au-niger/",
+        "image_path": null,
+        "date": "2026-02-02"
     }
 ]
