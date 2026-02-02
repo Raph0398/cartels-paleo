@@ -387,5 +387,19 @@
         "url_qr": "https://sciences2d.wordpress.com/2013/06/10/le-tassa-fait-le-bonheur-des-paysans-au-niger/",
         "image_path": null,
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202164356",
+        "titre": "IRRIGATION PAR LES RACINES",
+        "annee": "1990",
+        "description": "L\u2019irrigation par les racines est un syst\u00e8me de culture sur\u00e9lev\u00e9e combinant un r\u00e9servoir d\u2019eau souterrain et un substrat de culture. L\u2019eau remonte par capillarit\u00e9 jusqu\u2019aux racines des plantes, ce qui permet une irrigation passive et ma\u00eetris\u00e9e. \n\nCette m\u00e9thode r\u00e9duit l\u2019\u00e9vaporation et l\u2019utilisation d\u2019eau, tout en assurant une alimentation hydrique constante. Elle a \u00e9t\u00e9 con\u00e7ue \u00e0 l\u2019origine pour les zones arides, et peut \u00eatre construite \u00e0 partir de mat\u00e9riaux simples (graviers, g\u00e9otextile, compost). \n\nCe proc\u00e9d\u00e9 est utilis\u00e9 en agriculture urbaine, en permaculture et dans des contextes \u00e0 ressources hydriques limit\u00e9es",
+        "exhume_par": "Cedric Carles",
+        "categories": [
+            "Agriculture",
+            "H2O"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3533.jpeg",
+        "date": "2026-02-02"
     }
 ]
