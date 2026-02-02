@@ -427,5 +427,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3535.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202164640",
+        "titre": "R\u00c9ENSAUVAGEMENT HYDRIQUE",
+        "annee": "XXI si\u00e8cle",
+        "description": "Cette m\u00e9thode de r\u00e9ensauvagement hydrique s\u2019inspire des castors pour restaurer les \u00e9cosyst\u00e8mes aquatiques et r\u00e9hydrater les prairies. Sur une ferme, les pratiques de construction de barrages de castors ont \u00e9t\u00e9 imit\u00e9es pour ralentir l\u2019\u00e9coulement de l\u2019eau d\u2019une rivi\u00e8re ass\u00e9ch\u00e9e, permettant \u00e0 celle-ci de retrouver son lit naturel et de revitaliser les sols adjacents. Ces \"barrages artificiels\" recr\u00e9ent des zones humides en pi\u00e9geant l\u2019eau et en l\u2019infiltrant lentement dans les terres, favorisant ainsi une biodiversit\u00e9 riche et r\u00e9siliente.\n\nLes barrages ralentissent le d\u00e9bit de l\u2019eau et cr\u00e9ent des retenues naturelles, imitant l\u2019habitat du castor et recr\u00e9ant des micro environnements humides. Cela aide \u00e0 restaurer les nappes phr\u00e9atiques, r\u00e9g\u00e9n\u00e8re les prairies et renforce la r\u00e9silience des \u00e9cosyst\u00e8mes en p\u00e9riode de s\u00e9cheresse. ",
+        "exhume_par": "C\u00e9dric Carles",
+        "categories": [
+            "H2O",
+            "Agriculture"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3536.jpeg",
+        "date": "2026-02-02"
     }
 ]
