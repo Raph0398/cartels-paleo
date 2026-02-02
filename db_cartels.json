@@ -303,5 +303,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3526.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202163716",
+        "titre": "UN CH\u00c2TEAU D\u2019EAU-\u00c9OLIENNE",
+        "annee": "1901",
+        "description": "Cette \u00e9olienne de bois fut construite dans une petite commune de l\u2019Aube (France), Pargues. Construite au-dessus d\u2019un ch\u00e2teau d\u2019eau, elle servait \u00e0 actionner une pompe pour r\u00e9cup\u00e9rer l\u2019eau de la nappe au-dessus de laquelle la construction \u00e9tait install\u00e9e. L\u2019objectif de Pargues \u00e9tait d\u2019alimenter la ville en eau pure, pour approvisionner les fontaines et lavoirs notamment. R\u00e9alis\u00e9 par l\u2019architecte Ludovic Sot en 1902, c\u2019est un dispositif unique, class\u00e9 aujourd\u2019hui au patrimoine des monuments historiques depuis 2011.",
+        "exhume_par": "Thomas Ortiz",
+        "categories": [
+            "H2O",
+            "Eolien"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3527.jpeg",
+        "date": "2026-02-02"
     }
 ]
