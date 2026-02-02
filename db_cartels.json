@@ -331,5 +331,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3528.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202163934",
+        "titre": "LA M\u00c9THODE KEYLINE",
+        "annee": "1950",
+        "description": "La m\u00e9thode Keyline, d\u00e9velopp\u00e9e par P.A. Yeomans, est une approche de gestion de l'eau et du sol en agriculture r\u00e9g\u00e9n\u00e9rative. Elle vise \u00e0 maximiser l'efficacit\u00e9 de l'utilisation de l'eau sur les terres agricoles en favorisant une infiltration et une distribution uniformes de l'eau. \n\nCela est r\u00e9alis\u00e9 par le design de paysages avec des barrages, des canaux et des foss\u00e9s qui suivent les contours naturels du terrain. La m\u00e9thode met \u00e9galement l'accent sur l'am\u00e9lioration de la structure du sol et la cr\u00e9ation de microclimats favorables \u00e0 la croissance des plantes.",
+        "exhume_par": "C\u00e9dric Carles",
+        "categories": [
+            "Agriculture",
+            "H2O"
+        ],
+        "url_qr": "https://wiki.tripleperformance.fr/wiki/Keyline_design#:~:text=Le%20keyline%20design%20est%20une,'%C3%A9coulement%20de%20l'eau.",
+        "image_path": "images_archive/IMG_3529.jpeg",
+        "date": "2026-02-02"
     }
 ]
