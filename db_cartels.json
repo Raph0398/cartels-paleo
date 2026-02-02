@@ -193,5 +193,18 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3518.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202162633",
+        "titre": "R\u00c9SEAU HYDRAULIQUE TRADITIONNEL DE JAIPUR",
+        "annee": "1727",
+        "description": "Con\u00e7u sous l\u2019impulsion de Jai Singh II, ce syst\u00e8me est le fruit d\u2019un travail collectif entre architectes, ing\u00e9nieurs et urbanistes de l\u2019\u00e9poque, combinant savoirs hydrauliques, architecturaux et environnementaux. Le r\u00e9seau hydraulique de Jaipur repose sur une optimisation des ressources naturelles, prenant en compte les contraintes climatiques et les besoins de la population. Il s\u2019articule autour de plusieurs dispositifs compl\u00e9mentaires :\n \u2022 Stockage des eaux de pluie : Un syst\u00e8me de canaux et de r\u00e9servoirs interconnect\u00e9s capte et stocke l\u2019eau des pr\u00e9cipitations rares pour une utilisation tout au long de l\u2019ann\u00e9e.\n \u2022 Lacs artificiels et bassins urbains : Des ouvrages comme le lac Man Sagar, associ\u00e9 au Jal Mahal, permettent de r\u00e9guler l\u2019humidit\u00e9 locale et de servir de r\u00e9serves d\u2019eau en p\u00e9riode s\u00e8che.\n \u2022 Baoris et stepwells : Ces puits \u00e0 degr\u00e9s (ex. Chand Baori) offrent un acc\u00e8s direct \u00e0 l\u2019eau, limitent l\u2019\u00e9vaporation et facilitent la gestion communautaire des ressources.\n \u2022 R\u00e9seaux souterrains et citernes : L\u2019eau est achemin\u00e9e via des conduits gravitaires et stock\u00e9e dans des r\u00e9servoirs souterrains, garantissant une distribution efficace sans perte importante.\n\nCe mod\u00e8le a permis \u00e0 Jaipur de d\u00e9velopper une autonomie hydrique malgr\u00e9 des conditions climatiques extr\u00eames.",
+        "exhume_par": "Eric Dussert",
+        "categories": [
+            "H2O"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3519.jpeg",
+        "date": "2026-02-02"
     }
 ]
