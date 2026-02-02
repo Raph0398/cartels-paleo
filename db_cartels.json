@@ -261,5 +261,18 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3523.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202163332",
+        "titre": "DISTILLATION DE L\u2019EAU DE MER POUR LA CUISINE",
+        "annee": "1855",
+        "description": "Ce proc\u00e9d\u00e9 de distillation de l\u2019eau de mer, mis au point par M. Zambeaux et M. Gall\u00e9 en 1855, marque une avanc\u00e9e cruciale pour l\u2019approvisionnement en eau douce \u00e0 bord des navires. Dans un contexte o\u00f9 les marins d\u00e9pendaient de r\u00e9serves limit\u00e9es d\u2019eau douce pour les longs voyages, cette invention permettait de transformer l\u2019eau de mer en eau potable, r\u00e9pondant aux besoins quotidiens de l\u2019\u00e9quipage, notamment pour la cuisine.\n\nLe dispositif utilise la chaleur des chaudi\u00e8res du navire pour \u00e9vaporer l\u2019eau de mer. La vapeur d\u2019eau ainsi produite est ensuite condens\u00e9e, ce qui permet de r\u00e9cup\u00e9rer de l\u2019eau douce d\u00e9barrass\u00e9e de son sel et de ses impuret\u00e9s. Ce proc\u00e9d\u00e9 simple et efficace tire parti de l'\u00e9nergie thermique disponible, sans n\u00e9cessiter de carburant suppl\u00e9mentaire.",
+        "exhume_par": "\u00c9ric Dussert",
+        "categories": [
+            "H2O"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3524.jpeg",
+        "date": "2026-02-02"
     }
 ]
