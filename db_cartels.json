@@ -526,5 +526,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3542.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202165439",
+        "titre": "HELIO TRANSFORMER L\u2019EAU DE MER EN EAU POTABLE",
+        "annee": "2018",
+        "description": "Les syst\u00e8mes HELIO ont \u00e9t\u00e9 con\u00e7us pour reproduire le cycle naturel de l\u2019eau. Comment ? Gr\u00e2ce au ph\u00e9nom\u00e8ne de distillation solaire !\n\nCe principe permet de traiter tout liquide contenant la mol\u00e9cule de H2O : eau de mer, eau de rivi\u00e8re, eau de pluie, lac.\n\nL'eau \u00e0 traiter est achemin\u00e9e par une pompe et un panneau solaire jusqu\u2019au plateau situ\u00e9 au centre de la sph\u00e8re.\n\nPar effet de serre, elle s\u2019\u00e9vapore et se condense au contact des parois pour former de micro gouttelettes d\u2019eau pure. Cette eau va ensuite ruisseler le long des parois pour \u00eatre r\u00e9cup\u00e9r\u00e9e en partie basse de la sph\u00e8re.\n\nLes r\u00e9sidus solides (sel, etc.) sont \u00e9vacu\u00e9s par une purge du plateau.\n\nL\u2019eau produite par le syst\u00e8me HELIO est une eau pure qui pourra \u00eatre consomm\u00e9e directement en sortie.Un kit de remin\u00e9ralisation optionnel compos\u00e9 d\u2019\u00e9l\u00e9ments naturels (calcium, magn\u00e9sium, etc.), vous permettra de produire votre propre eau min\u00e9rale !",
+        "exhume_par": "Simon Bouchaudy",
+        "categories": [
+            "H2O",
+            "Solaire"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3543.jpeg",
+        "date": "2026-02-02"
     }
 ]
