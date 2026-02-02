@@ -483,5 +483,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3539.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202165129",
+        "titre": "L\u2018 ATELIER PAYSAN",
+        "annee": "2010",
+        "description": "L\u2019Atelier Paysan est une coop\u00e9rative fran\u00e7aise qui m\u00e8ne des activit\u00e9s de recherche et d\u00e9veloppement en co-conception d\u2019outils agricoles, sp\u00e9cifiquement pour l\u2019agriculture biologique et paysanne. L\u2019organisation documente et diffuse en acc\u00e8s libre des plans de machines agricoles con\u00e7ues avec et pour les agriculteurs. Ces outils sont pens\u00e9s pour \u00eatre construits directement par les utilisateurs dans le cadre de formations \u00e0 l\u2019autoconstruction. La d\u00e9marche s\u2019appuie sur des enqu\u00eates de terrain, des prototypes test\u00e9s collectivement, et une plateforme collaborative de documentation technique. Le catalogue comprend des \u00e9quipements pour le travail du sol, le semis, la transformation ou encore le mara\u00eechage. Les plans sont publi\u00e9s sous licence libre.",
+        "exhume_par": "Rapha\u00ebl Luciani-Galais",
+        "categories": [
+            "Agriculture",
+            "H2O"
+        ],
+        "url_qr": "https://www.latelierpaysan.org/Outils-et-plans",
+        "image_path": "images_archive/IMG_3540.jpeg",
+        "date": "2026-02-02"
     }
 ]
