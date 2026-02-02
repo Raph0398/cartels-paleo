@@ -441,5 +441,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3536.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202164743",
+        "titre": "MARA\u00ceCHAGE VERTICAL \u00c0 GRAVIT\u00c9 PASSIVE",
+        "annee": "XXI si\u00e8cle",
+        "description": "Le mara\u00eechage vertical \u00e0 gravit\u00e9 passive est une technique qui permet de cultiver des plantes en hauteur tout en utilisant la gravit\u00e9 pour l\u2019irrigation, \u00e9liminant ainsi le besoin de pompes ou d\u2019\u00e9lectricit\u00e9. Ce syst\u00e8me repose sur un r\u00e9servoir d\u2019eau plac\u00e9 en hauteur, d\u2019o\u00f9 l\u2019eau s\u2019\u00e9coule lentement vers les plantes via un r\u00e9seau de tuyaux ou de goutteurs. Cette m\u00e9thode optimise l\u2019utilisation de l\u2019espace, r\u00e9duit la consommation d\u2019eau et est particuli\u00e8rement adapt\u00e9e aux environnements urbains ou aux zones \u00e0 ressources limit\u00e9es. Des projets tels que le Passive Gravity Irrigated Planter d\u00e9montrent la faisabilit\u00e9 de cette approche, offrant une solution accessible et durable pour l\u2019agriculture urbaine.",
+        "exhume_par": "Raphael Luciani-Galais",
+        "categories": [
+            "H2O",
+            "Agriculture"
+        ],
+        "url_qr": "https://www.instructables.com/Gravity-Irrigated-Planter/",
+        "image_path": "images_archive/IMG_3537.jpeg",
+        "date": "2026-02-02"
     }
 ]
