@@ -414,5 +414,18 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3534.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202164548",
+        "titre": " CITERNE HIPPO WATER ROLLER",
+        "annee": "1997",
+        "description": "Dans de tr\u00e8s nombreux pays d'Afrique et en Inde, pr\u00e8s de 750 millions de personnes n'ont pas acc\u00e8s \u00e0 l'eau potable. Sur des distances plus ou moins grandes, il est n\u00e9cessaire de transporter l'eau.\n\nPettie Petzer et Johan Jonker mettent au point un outil qui facilite cette t\u00e2che \u00e9reintante souvent ex\u00e9cut\u00e9e par les femmes.\n\nFabriqu\u00e9 en Afrique, ce tonneau de 90L en Poly\u00e9thyl\u00e8ne protecteur d'UV est con\u00e7u pour pouvoir rouler facilement sur des surfaces difficiles.\n\nAujourd'hui c'est plus de 65 000 Hippo Roller distribu\u00e9s dans 56 pays.",
+        "exhume_par": "Simon Bouchaudy",
+        "categories": [
+            "H2O"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3535.jpeg",
+        "date": "2026-02-02"
     }
 ]
