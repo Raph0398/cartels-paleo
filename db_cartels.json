@@ -206,5 +206,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3519.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202162754",
+        "titre": "SEMELLES CHAUFFANTES LAVOISIER",
+        "annee": "1780",
+        "description": "Le p\u00e8re de la chimie moderne \u00e9tait-il d\u00e9j\u00e0 atteint \u00e0 l'\u00e9poque par la pr\u00e9carit\u00e9 \u00e9nerg\u00e9tique ?\n\nOui, si l\u2019on en croit ces semelles chauffantes retrouv\u00e9es dans le laboratoire de Lavoisier. A la mani\u00e8re d'une bouillotte, les semelles peuvent se remplir d'eau chaude et tenir des pieds au chaud sous un bureau. Cette invention nous rappelle qu\u2019afin de se sentir chez soi, les individus mettent souvent en place des pratiques \u00e9nerg\u00e9tiques diverses, celles-ci \u00e9voluant et changeant en fonction des personnes. \n\nLes semelles chauffantes sont visibles au deuxi\u00e8me \u00e9tage du Mus\u00e9e des Arts et M\u00e9tiers \u00e0 Paris dans la reconstitution du laboratoire de Lavoisier. ",
+        "exhume_par": "C\u00e9dric Carles",
+        "categories": [
+            "H2O",
+            "R\u00e9chauffer"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3520.jpeg",
+        "date": "2026-02-02"
     }
 ]
