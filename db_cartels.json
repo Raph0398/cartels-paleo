@@ -511,5 +511,20 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3541.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202165343",
+        "titre": "LE BEEHIVE - ANT STUDIO",
+        "annee": "2017",
+        "description": "L\u2019entreprise de design Ant Studio, situ\u00e9e \u00e0 New Delhi, a eu l\u2019id\u00e9e de cr\u00e9er \u00ab The Beehive \u00bb (en fran\u00e7ais, la ruche) une structure en forme d\u2019alv\u00e9oles capable de rafra\u00eechir l\u2019air ambiant sans n\u00e9cessiter d\u2019\u00e9nergie. Le syst\u00e8me est \u00e0 base d\u2019argile et d\u2019eau.\n\nCette \u00ab\u2009ruche\u2009\u00bb est compos\u00e9e de simples tubes en terre cuite, un mat\u00e9riau naturel. Ceux-ci sont install\u00e9s sur une structure m\u00e9tallique circulaire qui est ensuite d\u00e9pos\u00e9e dans un bassin qui permet de recueillir l\u2019eau, sur le m\u00eame principe qu\u2019une fontaine en circuit ferm\u00e9.\n\nL\u2019eau vers\u00e9e manuellement au sommet de la structure ruisselle sur les tubes d\u2019argile et les imbibe de son humidit\u00e9. L\u2019air qui p\u00e9n\u00e8tre dans les tubes est alors rafra\u00eechi, tout simplement.",
+        "exhume_par": "Marcel Robert",
+        "categories": [
+            "H2O",
+            "Rafra\u00eechir",
+            "R\u00e9gulation thermique"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3542.jpeg",
+        "date": "2026-02-02"
     }
 ]
