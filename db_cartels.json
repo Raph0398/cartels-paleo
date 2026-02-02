@@ -233,5 +233,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3521.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202163114",
+        "titre": "LES JARDINS OUVRIERS",
+        "annee": "XIX si\u00e8cle",
+        "description": "N\u00e9s \u00e0 la fin du XIXe si\u00e8cle, les jardins ouvriers apparaissent dans un contexte d\u2019urbanisation rapide, de pr\u00e9carit\u00e9 alimentaire et d\u2019hygi\u00e8ne d\u00e9grad\u00e9e dans les banlieues industrielles. \nL\u2019abb\u00e9 Jules Lemire milite pour la cr\u00e9ation de ces espaces cultivables \u00e0 destination des familles populaires, afin de leur offrir un compl\u00e9ment alimentaire sain, un contact avec la nature, et une forme de stabilit\u00e9 sociale. \n\nD\u00e8s 1896, la Ligue du coin de terre et du foyer favorise l\u2019essaimage de ces parcelles individuelles, notamment en Seine-Saint-Denis. Am\u00e9nag\u00e9s en bordure des villes, parfois sur des friches ou des terrains en attente d\u2019urbanisation, ces jardins deviennent des lieux d\u2019autoproduction, de transmission horticole et de sociabilit\u00e9.\n\nDurant les deux guerres mondiales, leur r\u00f4le nourricier est crucial. Aujourd\u2019hui, ils constituent un h\u00e9ritage vivant de la r\u00e9silience populaire, inspirant les d\u00e9marches d\u2019agriculture urbaine contemporaine.",
+        "exhume_par": "Rapha\u00ebl Luciani-Galais",
+        "categories": [
+            "H2O",
+            "Agriculture"
+        ],
+        "url_qr": "https://www.tourisme93.com/invention-jardins-ouvriers.html",
+        "image_path": "images_archive/IMG_3522.jpeg",
+        "date": "2026-02-02"
     }
 ]
