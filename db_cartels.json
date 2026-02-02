@@ -179,5 +179,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3517.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202162531",
+        "titre": "SYST\u00c8ME KABATA DE GESTION DE L\u2019EAU",
+        "annee": "XVII si\u00e8cles",
+        "description": "Le syst\u00e8me Kabata repose sur l\u2019utilisation d\u2019eau de source naturellement filtr\u00e9e par le milieu g\u00e9ologique. \u00c0 Harie, l\u2019eau circule \u00e0 travers les habitations via un r\u00e9seau de canaux et de bassins int\u00e9gr\u00e9s. Ce proc\u00e9d\u00e9 assure un approvisionnement constant en eau pure pour les usages domestiques, tout en cr\u00e9ant un microclimat : sa temp\u00e9rature stable apporte fra\u00eecheur en \u00e9t\u00e9 et douceur en hiver.\n\nLe syst\u00e8me valorise aussi l\u2019\u00e9cologie locale en r\u00e9gulant la qualit\u00e9 de l\u2019eau gr\u00e2ce \u00e0 des bassins peupl\u00e9s de carpes filtrantes.\nIl fonctionne selon des principes naturels, sans technologies \u00e9nergivores ni maintenance complexe.\n\nEn exploitant les ressources locales (eau de source) et la g\u00e9othermie passive (temp\u00e9rature stable de l\u2019eau), il r\u00e9duit le besoin d\u2019\u00e9quipements modernes de chauffage ou de rafra\u00eechissement.\n\nEn favorisant une gestion raisonn\u00e9e de l\u2019eau et en limitant le gaspillage, cette technique offre une solution inspirante pour la transition \u00e9nerg\u00e9tique et la pr\u00e9servation des ressources naturelles.",
+        "exhume_par": "Thomas Ortiz",
+        "categories": [
+            "Agriculture",
+            "H2O"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3518.jpeg",
+        "date": "2026-02-02"
     }
 ]
