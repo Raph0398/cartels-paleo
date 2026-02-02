@@ -123,5 +123,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3512.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202160143",
+        "titre": "Moulins-Bateaux ",
+        "annee": "508",
+        "description": "Qui, en France, se souvient que sur nos rivi\u00e8res ont exist\u00e9 des moulins flottants et que la plupart ont disparu au milieu du XIX\u00e8me si\u00e8cle ? \n\nLe premier document \u00e9voquant les moulins-bateaux remonte en l'an 508, quand Clovis autorise la fondation de l'abbaye de Saint-Mesmin de Micy \u00e0 \u00e9tablir des moulins-bateaux sur les rivi\u00e8res de Loire et du Loiret.\n\nLe moulin-bateau a l'apparence ext\u00e9rieure d'un bateau, mais il fonctionne comme un moulin \u00e0 eau fix\u00e9 sur le bord de la rivi\u00e8re, avec sa roue \u00e0 aubes et ses machines pour la mouture. L\u2019avantage du moulin \u00e0 deux nefs est sa stabilit\u00e9. Ce type de moulin rendait possible l\u2019existence de ventelles servant \u00e0 r\u00e9guler l'arriv\u00e9e d'eau sur la roue \u00e0 aubes mais aussi de mieux contr\u00f4ler la vitesse du m\u00e9canisme du moulin.\n\nLes avantages du moulin-bateau, par rapport au moulin fixe install\u00e9 sur le bord des rivi\u00e8res est sa capacit\u00e9 \u00e0 \u00eatre d\u00e9plac\u00e9, il suit les fluctuations du niveau des eaux sans dommage pour le moulin-bateau alors que le moulin fixe subit les caprices des rivi\u00e8res, une forte crue peut causer d'importants d\u00e9g\u00e2ts, voire emporter toute la cabane et son syst\u00e8me de meunerie, ou se trouver inactif par une baisse des eaux. ",
+        "exhume_par": "Bateliers des Vents d'Galerne",
+        "categories": [
+            "H2O",
+            "Agriculture"
+        ],
+        "url_qr": "https://www.bateliersdesventsdgalerne.fr/",
+        "image_path": "images_archive/IMG_3513.jpeg",
+        "date": "2026-02-02"
     }
 ]
