@@ -568,5 +568,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3545.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202165754",
+        "titre": "ARBRE DE PLUIE POUR R\u00c9CUP\u00c9RER L\u2019EAU",
+        "annee": "2023",
+        "description": "En 2023, la M\u00e9tropole de Lyon a implant\u00e9 sept \"arbres de pluie\" \u00e0 Couzon-au-Mont-d'Or, rue Jean-Baptiste Anjolvy. Cette initiative vise \u00e0 am\u00e9liorer l'infiltration des eaux pluviales en milieu urbain. \n\nLe concept consiste \u00e0 \u00e9largir les espaces autour des troncs d'arbres, rempla\u00e7ant le bitume par de la pleine terre, permettant ainsi \u00e0 l'eau de pluie de nourrir les racines et de recharger les nappes phr\u00e9atiques. Des plantes vari\u00e9es sont ajout\u00e9es pour favoriser la biodiversit\u00e9 et rafra\u00eechir l'atmosph\u00e8re. Des am\u00e9nagements techniques, comme des tranch\u00e9es d'infiltration en gravier et des dalles poreuses pour les places\n\n de stationnement, optimisent la collecte et l'absorption de l'eau. Ce projet, financ\u00e9 \u00e0 50% par l'Agence de l'eau, a \u00e9galement impliqu\u00e9 50 \u00e9coliers locaux dans la plantation de 500 arbustes et plantes couvre-sol autour des arbres. Les 400 m\u00b2 de pleine terre ainsi cr\u00e9\u00e9s permettent de r\u00e9cup\u00e9rer l'eau de pluie provenant de 4 000 m\u00b2 de surfaces imperm\u00e9abilis\u00e9es environnantes.",
+        "exhume_par": "Cedric Carles",
+        "categories": [
+            "Agriculture",
+            "H2O"
+        ],
+        "url_qr": "https://pablobras.fr/09_Kit-d-arrosage",
+        "image_path": "images_archive/IMG_3546.jpeg",
+        "date": "2026-02-02"
     }
 ]
