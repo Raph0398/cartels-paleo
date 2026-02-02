@@ -165,5 +165,19 @@
         "url_qr": "",
         "image_path": "images_archive/IMG_3516.jpeg",
         "date": "2026-02-02"
+    },
+    {
+        "id": "20260202162417",
+        "titre": "LES SUIKINKUTSU, BASSINS D\u2019INFILTRATION JAPONAIS",
+        "annee": "XVII si\u00e8cle",
+        "description": "Les Suikinkutsu sont des bassins d\u2019infiltration japonais d\u00e9velopp\u00e9s au XVIIe si\u00e8cle, combinant gestion de l\u2019eau et esth\u00e9tique sonore dans les jardins traditionnels. Ces syst\u00e8mes, souvent dissimul\u00e9s sous des fontaines ou pr\u00e8s des lavabos rituels (ch\u014dzubachi), sont constitu\u00e9s d\u2019une jarre enterr\u00e9e contenant une petite ouverture \u00e0 sa base.\n\nLorsque l\u2019eau s\u2019infiltre goutte \u00e0 goutte dans cette cavit\u00e9, elle produit un son d\u00e9licat et cristallin, amplifi\u00e9 par la r\u00e9sonance de la jarre. Au-del\u00e0 de leur aspect esth\u00e9tique, les Suikinkutsu permettent une drainage naturel de l\u2019eau, \u00e9vitant l\u2019accumulation stagnante et favorisant la r\u00e9g\u00e9n\u00e9ration des sols.\n\nToujours pr\u00e9sents dans certains jardins japonais, ces dispositifs sont aujourd\u2019hui \u00e9tudi\u00e9s pour leur approche durable et biomim\u00e9tique de la gestion de l\u2019eau en milieu urbain, combinant efficacit\u00e9 hydraulique et bien-\u00eatre sensoriel.",
+        "exhume_par": "Simona Iliycheva",
+        "categories": [
+            "Agriculture",
+            "H2O"
+        ],
+        "url_qr": "",
+        "image_path": "images_archive/IMG_3517.jpeg",
+        "date": "2026-02-02"
     }
 ]
